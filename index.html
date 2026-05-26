@@ -773,21 +773,25 @@
         }
 
         function adminLogin(event) {
-            event.preventDefault();
-            const pin = document.getElementById('adminPin').value;
+        event.preventDefault();
+        const pin = document.getElementById('adminPin').value;
 
-            if (pin !== MASTER_PIN) {
-                showLoginError('Invalid PIN');
-                return;
-            }
-
-            AUTH.isLoggedIn = true;
-            AUTH.userType = 'admin';
-            AUTH.userId = 'master_admin';
-            showApp();
-            displayAdminPanel();
+        if (pin !== MASTER_PIN) {
+        showLoginError('Invalid PIN');
+        return;
         }
 
+    AUTH.isLoggedIn = true;
+    AUTH.userType = 'admin';
+    AUTH.userId = 'master_admin';
+    showApp();
+    
+    // Show Admin tab
+    document.getElementById('adminTabBtn').style.display = 'inline-block';
+    document.getElementById('accessTabBtn').style.display = 'none';
+    
+    displayAdminPanel();
+}
         function staffLogin(event) {
             event.preventDefault();
             const clientCode = document.getElementById('clientCode').value.toLowerCase();
