@@ -407,7 +407,7 @@
 
             <div class="tabs" id="tabsContainer">
                 <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
-                <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin')">Admin</button>
+                <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin')" style="display:none;">Admin</button>
                 <button class="tab-btn" id="accessTabBtn" onclick="switchTab('access')" style="display:none;">Access Control</button>
                 <button class="tab-btn" onclick="switchTab('ingredients')">Ingredients</button>
                 <button class="tab-btn" onclick="switchTab('products')">Products</button>
@@ -467,9 +467,15 @@
                                 <input type="text" id="newClientCode" placeholder="e.g., liegecafe" required>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Default Staff PIN *</label>
-                            <input type="password" id="newClientPin" placeholder="PIN for first staff member" required>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Client Email *</label>
+                                <input type="email" id="newClientEmail" placeholder="client@example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Default Staff PIN *</label>
+                                <input type="password" id="newClientPin" placeholder="PIN for first staff member" required>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Create Client</button>
                     </form>
@@ -713,10 +719,16 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script>
         // ============================================
-        // AUTH & DATA
+        // EMAIL & AUTH & DATA
         // ============================================
+
+        // EmailJS Configuration
+        emailjs.init('mkvAO4jtTfKMo6yJr');
+        const EMAIL_SERVICE_ID = 'service_iy1x138';
+        const EMAIL_TEMPLATE_ID = 'template_76oq7ha';
 
         const MASTER_PIN = '1234'; // Change this!
 
@@ -773,10 +785,7 @@
             AUTH.userType = 'admin';
             AUTH.userId = 'master_admin';
             showApp();
-            updateUIForRole();
             displayAdminPanel();
-            document.getElementById('adminTabBtn').style.display = 'inline-block';
-            document.getElementById('accessTabBtn').style.display = 'none';
         }
 
         function staffLogin(event) {
@@ -891,6 +900,7 @@
             event.preventDefault();
             const name = document.getElementById('newClientName').value;
             const code = document.getElementById('newClientCode').value.toLowerCase();
+            const email = document.getElementById('newClientEmail').value;
             const pin = document.getElementById('newClientPin').value;
 
             if (DB.clients[code]) {
@@ -901,6 +911,7 @@
             DB.clients[code] = {
                 name,
                 code,
+                email,
                 created: new Date().toISOString(),
                 staff: { [pin]: { name: 'Default Staff', role: 'admin' } }
             };
@@ -912,9 +923,33 @@
             };
 
             saveData();
+            
+            // Send welcome email
+            sendWelcomeEmail(name, code, pin, email);
+            
             displayClientsTable();
             event.target.reset();
-            showAlert('Client created successfully!');
+            showAlert('Client created successfully! Welcome email sent.');
+        }
+
+        function sendWelcomeEmail(clientName, clientCode, clientPin, clientEmail) {
+            const appUrl = window.location.href.split('?')[0];
+            
+            emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+                to_email: clientEmail,
+                client_name: clientName,
+                client_code: clientCode,
+                client_pin: clientPin,
+                app_url: appUrl
+            }).then(
+                function(response) {
+                    console.log('Email sent successfully!', response);
+                },
+                function(error) {
+                    console.error('Email failed to send:', error);
+                    showAlert('⚠️ Client created but email failed to send. Send manually.', 'error');
+                }
+            );
         }
 
         function displayClientsTable() {
