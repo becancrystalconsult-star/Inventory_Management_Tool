@@ -389,6 +389,7 @@
 
             <div class="tabs">
                 <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+                <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin')" style="display:none;">Admin</button>
                 <button class="tab-btn" onclick="switchTab('ingredients')">Raw Materials</button>
                 <button class="tab-btn" onclick="switchTab('products')">Products</button>
                 <button class="tab-btn" onclick="switchTab('production')">Production</button>
@@ -416,6 +417,53 @@
                         <div class="stat-value" id="totalSales">0</div>
                         <div>Sales</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ADMIN TAB -->
+            <div id="admin" class="tab-content">
+                <div class="card">
+                    <h2>Create New Business</h2>
+                    <form onsubmit="createClient(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Business Name *</label>
+                                <input type="text" id="newClientName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Business Code (lowercase, no spaces) *</label>
+                                <input type="text" id="newClientCode" placeholder="e.g., liegecafe" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Owner Email *</label>
+                                <input type="email" id="newClientEmail" placeholder="owner@example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Default Staff PIN *</label>
+                                <input type="password" id="newClientPin" placeholder="4-6 digits" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Business</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2>All Businesses</h2>
+                    <table id="clientsTable">
+                        <thead>
+                            <tr>
+                                <th>Business Name</th>
+                                <th>Code</th>
+                                <th>Owner Email</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="clientsEmpty" class="empty-state">No businesses yet</div>
                 </div>
             </div>
 
@@ -842,6 +890,12 @@
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             updateUserInfo();
+            
+            // Show admin tab if master admin
+            if (AUTH.userType === 'admin') {
+                document.getElementById('adminTabBtn').style.display = 'inline-block';
+                displayClientsTable();
+            }
         }
 
         function updateUserInfo() {
@@ -862,6 +916,98 @@
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('appContainer').style.display = 'none';
             location.reload();
+        }
+
+        // ============================================
+        // ADMIN PANEL (Master Admin Only)
+        // ============================================
+
+        function createClient(event) {
+            event.preventDefault();
+            const name = document.getElementById('newClientName').value;
+            const code = document.getElementById('newClientCode').value.toLowerCase();
+            const email = document.getElementById('newClientEmail').value;
+            const pin = document.getElementById('newClientPin').value;
+
+            if (DB.clients[code]) {
+                showAlert('Business code already exists', 'error');
+                return;
+            }
+
+            DB.clients[code] = {
+                name,
+                code,
+                email,
+                created: new Date().toISOString(),
+                staff: { [pin]: { name: 'Default Staff', role: 'admin' } }
+            };
+
+            DB.clientData[code] = {
+                ingredients: [],
+                products: [],
+                production: [],
+                sales: []
+            };
+
+            saveData();
+            sendWelcomeEmail(name, code, pin, email);
+            displayClientsTable();
+            event.target.reset();
+            showAlert('Business created successfully! Welcome email sent.');
+        }
+
+        function displayClientsTable() {
+            const tbody = document.querySelector('#clientsTable tbody');
+            const empty = document.getElementById('clientsEmpty');
+
+            if (Object.keys(DB.clients).length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = Object.values(DB.clients).map(client => `
+                <tr>
+                    <td>${client.name}</td>
+                    <td><code>${client.code}</code></td>
+                    <td>${client.email}</td>
+                    <td>${new Date(client.created).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-danger btn-small" onclick="deleteClient('${client.code}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteClient(code) {
+            if (confirm('Delete this business and all data?')) {
+                delete DB.clients[code];
+                delete DB.clientData[code];
+                saveData();
+                displayClientsTable();
+                showAlert('Business deleted');
+            }
+        }
+
+        function sendWelcomeEmail(clientName, clientCode, clientPin, clientEmail) {
+            const appUrl = window.location.href.split('?')[0];
+            
+            emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+                to_email: clientEmail,
+                client_name: clientName,
+                client_code: clientCode,
+                client_pin: clientPin,
+                app_url: appUrl
+            }).then(
+                function(response) {
+                    console.log('Email sent!', response);
+                },
+                function(error) {
+                    console.error('Email failed:', error);
+                    showAlert('⚠️ Business created but email failed. Send manually.', 'error');
+                }
+            );
         }
 
         // ============================================
