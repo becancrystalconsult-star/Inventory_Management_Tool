@@ -715,6 +715,19 @@
                         <input type="text" id="currentClientCode" disabled>
                     </div>
                 </div>
+
+                <div class="card">
+                    <h2>☁️ Google Sheets Backup & Restore</h2>
+                    <p style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">
+                        Backup your data to Google Sheets or restore from a previous backup.
+                    </p>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="testConnection()">🔗 Test Connection</button>
+                        <button class="btn btn-primary" onclick="backupToSheets()">💾 Backup Now</button>
+                        <button class="btn btn-secondary" onclick="restoreFromSheets()">📥 Restore Data</button>
+                    </div>
+                    <div id="syncStatus" style="margin-top: 1rem; font-size: 0.9rem; color: #666;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -729,6 +742,9 @@
         emailjs.init('mkvAO4jtTfKMo6yJr');
         const EMAIL_SERVICE_ID = 'service_iy1x138';
         const EMAIL_TEMPLATE_ID = 'template_76oq7ha';
+
+        // Google Apps Script Configuration
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlDNF1n2Y2f3-czmgVRtAStr4DfXubqlGbBpoOuQgHtZmzWJw2SoR0WpzrZ3Jhq3Ok/exec';
 
         const MASTER_PIN = '1234'; // Change this!
 
@@ -773,25 +789,21 @@
         }
 
         function adminLogin(event) {
-        event.preventDefault();
-        const pin = document.getElementById('adminPin').value;
+            event.preventDefault();
+            const pin = document.getElementById('adminPin').value;
 
-        if (pin !== MASTER_PIN) {
-        showLoginError('Invalid PIN');
-        return;
+            if (pin !== MASTER_PIN) {
+                showLoginError('Invalid PIN');
+                return;
+            }
+
+            AUTH.isLoggedIn = true;
+            AUTH.userType = 'admin';
+            AUTH.userId = 'master_admin';
+            showApp();
+            displayAdminPanel();
         }
 
-    AUTH.isLoggedIn = true;
-    AUTH.userType = 'admin';
-    AUTH.userId = 'master_admin';
-    showApp();
-    
-    // Show Admin tab
-    document.getElementById('adminTabBtn').style.display = 'inline-block';
-    document.getElementById('accessTabBtn').style.display = 'none';
-    
-    displayAdminPanel();
-}
         function staffLogin(event) {
             event.preventDefault();
             const clientCode = document.getElementById('clientCode').value.toLowerCase();
@@ -1326,6 +1338,99 @@
             if (AUTH.role === 'admin' || AUTH.userType === 'admin') {
                 displayStaffTable();
             }
+        }
+
+        // ============================================
+        // GOOGLE SHEETS SYNC
+        // ============================================
+
+        function testConnection() {
+            showAlert('Testing connection...', 'info');
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: 'ping',
+                    clientCode: AUTH.clientCode
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                showAlert('✓ Connected to Google Sheets!', 'success');
+                document.getElementById('syncStatus').textContent = '✓ Last tested: ' + new Date().toLocaleString();
+            })
+            .catch(err => {
+                showAlert('✗ Connection failed: ' + err.message, 'error');
+            });
+        }
+
+        function backupToSheets() {
+            if (!AUTH.clientCode) {
+                showAlert('Not logged in as staff', 'error');
+                return;
+            }
+
+            showAlert('Backing up to Google Sheets...', 'info');
+            const data = getClientData();
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: 'sync_all',
+                    clientCode: AUTH.clientCode,
+                    ingredients: data.ingredients,
+                    products: data.products,
+                    sales: data.sales
+                })
+            })
+            .then(r => r.json())
+            .then(result => {
+                showAlert('✓ Backup successful! Your data is safe in Google Sheets.', 'success');
+                document.getElementById('syncStatus').textContent = '✓ Last backed up: ' + new Date().toLocaleString();
+            })
+            .catch(err => {
+                showAlert('✗ Backup failed: ' + err.message, 'error');
+            });
+        }
+
+        function restoreFromSheets() {
+            if (!AUTH.clientCode) {
+                showAlert('Not logged in as staff', 'error');
+                return;
+            }
+
+            if (!confirm('This will replace your current data with the data from Google Sheets. Continue?')) {
+                return;
+            }
+
+            showAlert('Restoring from Google Sheets...', 'info');
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: 'restore_data',
+                    clientCode: AUTH.clientCode
+                })
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.ingredients || result.products || result.sales) {
+                    // Update local data
+                    const clientData = DB.clientData[AUTH.clientCode];
+                    if (result.ingredients) clientData.ingredients = result.ingredients;
+                    if (result.products) clientData.products = result.products;
+                    if (result.sales) clientData.sales = result.sales;
+
+                    saveData();
+                    updateAllDisplays();
+                    showAlert('✓ Data restored successfully!', 'success');
+                    document.getElementById('syncStatus').textContent = '✓ Last restored: ' + new Date().toLocaleString();
+                } else {
+                    showAlert('No data found in Google Sheets to restore', 'error');
+                }
+            })
+            .catch(err => {
+                showAlert('✗ Restore failed: ' + err.message, 'error');
+            });
         }
 
         // ============================================
