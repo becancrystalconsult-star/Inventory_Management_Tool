@@ -1,0 +1,248 @@
+// ================================================================
+//  INVENTORY TRACKER — Google Apps Script Backend
+//  Deploy this as a Web App (Anyone can access)
+// ================================================================
+
+function doGet(e) {
+  const type = e.parameter.type || 'config';
+  const clientCode = (e.parameter.c || '').toLowerCase();
+
+  if (!clientCode) {
+    return jsonResponse({ error: 'Missing client code' });
+  }
+
+  if (type === 'config') {
+    return jsonResponse(getClientConfig(clientCode));
+  }
+
+  if (type === 'data') {
+    return jsonResponse(getClientData(clientCode));
+  }
+
+  return jsonResponse({ error: 'Unknown type: ' + type });
+}
+
+function doPost(e) {
+  var data;
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch(err) {
+    return jsonResponse({ error: 'Invalid JSON' });
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const clientCode = (data.clientCode || '').toLowerCase();
+  const date = data.date || new Date().toISOString().slice(0, 10);
+
+  // Test connection
+  if (data.type === 'ping' || data.type === 'connection_test') {
+    return jsonResponse({ status: 'ok', message: 'Connected', client: clientCode });
+  }
+
+  // Save config
+  if (data.type === 'save_config') {
+    saveClientConfig(clientCode, {
+      businessName: data.businessName || '',
+      created: data.created || new Date().toISOString()
+    });
+    return jsonResponse({ status: 'ok' });
+  }
+
+  // Save ingredients
+  if (data.type === 'sync_ingredients') {
+    const sheet = getOrCreate(ss, 'Ingredients');
+    ensureHeader(sheet, ['clientCode', 'id', 'name', 'unit', 'cost', 'stock', 'reorder', 'supplier', 'updatedAt']);
+    clearClientData(sheet, clientCode);
+    
+    (data.ingredients || []).forEach(ing => {
+      sheet.appendRow([
+        clientCode,
+        ing.id,
+        ing.name,
+        ing.unit,
+        ing.cost,
+        ing.stock,
+        ing.reorder,
+        ing.supplier,
+        new Date().toISOString()
+      ]);
+    });
+    return jsonResponse({ status: 'ok', synced: data.ingredients.length });
+  }
+
+  // Save products
+  if (data.type === 'sync_products') {
+    const sheet = getOrCreate(ss, 'Products');
+    ensureHeader(sheet, ['clientCode', 'id', 'name', 'category', 'price', 'recipe', 'updatedAt']);
+    clearClientData(sheet, clientCode);
+    
+    (data.products || []).forEach(prod => {
+      sheet.appendRow([
+        clientCode,
+        prod.id,
+        prod.name,
+        prod.category,
+        prod.price,
+        JSON.stringify(prod.recipe || []),
+        new Date().toISOString()
+      ]);
+    });
+    return jsonResponse({ status: 'ok', synced: data.products.length });
+  }
+
+  // Save sales
+  if (data.type === 'sync_sales') {
+    const sheet = getOrCreate(ss, 'Sales');
+    ensureHeader(sheet, ['clientCode', 'date', 'product', 'category', 'units', 'revenue', 'cost', 'gross', 'channel', 'notes', 'recordedAt']);
+    clearClientData(sheet, clientCode);
+    
+    (data.sales || []).forEach(sale => {
+      sheet.appendRow([
+        clientCode,
+        sale.date,
+        sale.product,
+        sale.category,
+        sale.units,
+        sale.revenue,
+        sale.cost,
+        sale.gross,
+        sale.channel,
+        sale.notes,
+        new Date().toISOString()
+      ]);
+    });
+    return jsonResponse({ status: 'ok', synced: data.sales.length });
+  }
+
+  return jsonResponse({ status: 'ok', note: 'Received: ' + data.type });
+}
+
+// ============================================
+// CONFIG HELPERS
+// ============================================
+
+function getClientConfig(clientCode) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = getOrCreate(ss, 'Config');
+  ensureHeader(sheet, ['clientCode', 'businessName', 'created']);
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if ((data[i][0] || '').toLowerCase() === clientCode) {
+      return {
+        clientCode: data[i][0],
+        businessName: data[i][1],
+        created: data[i][2]
+      };
+    }
+  }
+
+  return {}; // Empty = new client
+}
+
+function saveClientConfig(clientCode, config) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = getOrCreate(ss, 'Config');
+  ensureHeader(sheet, ['clientCode', 'businessName', 'created']);
+
+  const data = sheet.getDataRange().getValues();
+  const values = [clientCode, config.businessName, config.created];
+
+  // Update if exists
+  for (let i = 1; i < data.length; i++) {
+    if ((data[i][0] || '').toLowerCase() === clientCode) {
+      sheet.getRange(i + 1, 1, 1, values.length).setValues([values]);
+      return;
+    }
+  }
+
+  // Add if new
+  sheet.appendRow(values);
+}
+
+function getClientData(clientCode) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  function sheetToArray(sheetName) {
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return [];
+
+    const rows = sheet.getDataRange().getValues();
+    if (rows.length < 2) return [];
+
+    const headers = rows[0];
+    return rows.slice(1)
+      .filter(r => (r[0] || '').toLowerCase() === clientCode)
+      .map(r => {
+        const obj = {};
+        headers.forEach((h, i) => {
+          obj[h] = r[i];
+        });
+        return obj;
+      });
+  }
+
+  const rawIngs = sheetToArray('Ingredients');
+  const rawProds = sheetToArray('Products');
+
+  const ingredients = rawIngs.map(r => ({
+    id: r.id,
+    name: r.name,
+    unit: r.unit,
+    cost: parseFloat(r.cost) || 0,
+    stock: parseFloat(r.stock) || 0,
+    reorder: parseFloat(r.reorder) || 0,
+    supplier: r.supplier
+  }));
+
+  const products = rawProds.map(r => {
+    let recipe = [];
+    try {
+      recipe = JSON.parse(r.recipe || '[]');
+    } catch (e) {}
+    return {
+      id: r.id,
+      name: r.name,
+      category: r.category,
+      price: parseFloat(r.price) || 0,
+      recipe: recipe
+    };
+  });
+
+  const cfg = getClientConfig(clientCode);
+  return {
+    ingredients,
+    products,
+    settings: { businessName: cfg.businessName || '' }
+  };
+}
+
+// ============================================
+// SHEET UTILITIES
+// ============================================
+
+function getOrCreate(ss, name) {
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+function ensureHeader(sheet, headers) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  }
+}
+
+function clearClientData(sheet, clientCode) {
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i > 0; i--) {
+    if ((data[i][0] || '').toLowerCase() === clientCode) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+function jsonResponse(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
