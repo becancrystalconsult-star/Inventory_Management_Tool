@@ -1,248 +1,1146 @@
-// ================================================================
-//  INVENTORY TRACKER — Google Apps Script Backend
-//  Deploy this as a Web App (Anyone can access)
-// ================================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-function doGet(e) {
-  const type = e.parameter.type || 'config';
-  const clientCode = (e.parameter.c || '').toLowerCase();
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
 
-  if (!clientCode) {
-    return jsonResponse({ error: 'Missing client code' });
-  }
+        .header {
+            background: #0f6e56;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
 
-  if (type === 'config') {
-    return jsonResponse(getClientConfig(clientCode));
-  }
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
 
-  if (type === 'data') {
-    return jsonResponse(getClientData(clientCode));
-  }
+        .sync-status {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
 
-  return jsonResponse({ error: 'Unknown type: ' + type });
-}
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
 
-function doPost(e) {
-  var data;
-  try {
-    data = JSON.parse(e.postData.contents);
-  } catch(err) {
-    return jsonResponse({ error: 'Invalid JSON' });
-  }
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const clientCode = (data.clientCode || '').toLowerCase();
-  const date = data.date || new Date().toISOString().slice(0, 10);
+        .tab-btn {
+            padding: 0.7rem 1.2rem;
+            border: none;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
 
-  // Test connection
-  if (data.type === 'ping' || data.type === 'connection_test') {
-    return jsonResponse({ status: 'ok', message: 'Connected', client: clientCode });
-  }
+        .tab-btn.active {
+            background: #0f6e56;
+            color: white;
+            border-color: #0f6e56;
+        }
 
-  // Save config
-  if (data.type === 'save_config') {
-    saveClientConfig(clientCode, {
-      businessName: data.businessName || '',
-      created: data.created || new Date().toISOString()
-    });
-    return jsonResponse({ status: 'ok' });
-  }
+        .tab-btn:hover {
+            border-color: #0f6e56;
+        }
 
-  // Save ingredients
-  if (data.type === 'sync_ingredients') {
-    const sheet = getOrCreate(ss, 'Ingredients');
-    ensureHeader(sheet, ['clientCode', 'id', 'name', 'unit', 'cost', 'stock', 'reorder', 'supplier', 'updatedAt']);
-    clearClientData(sheet, clientCode);
-    
-    (data.ingredients || []).forEach(ing => {
-      sheet.appendRow([
-        clientCode,
-        ing.id,
-        ing.name,
-        ing.unit,
-        ing.cost,
-        ing.stock,
-        ing.reorder,
-        ing.supplier,
-        new Date().toISOString()
-      ]);
-    });
-    return jsonResponse({ status: 'ok', synced: data.ingredients.length });
-  }
+        .tab-content {
+            display: none;
+        }
 
-  // Save products
-  if (data.type === 'sync_products') {
-    const sheet = getOrCreate(ss, 'Products');
-    ensureHeader(sheet, ['clientCode', 'id', 'name', 'category', 'price', 'recipe', 'updatedAt']);
-    clearClientData(sheet, clientCode);
-    
-    (data.products || []).forEach(prod => {
-      sheet.appendRow([
-        clientCode,
-        prod.id,
-        prod.name,
-        prod.category,
-        prod.price,
-        JSON.stringify(prod.recipe || []),
-        new Date().toISOString()
-      ]);
-    });
-    return jsonResponse({ status: 'ok', synced: data.products.length });
-  }
+        .tab-content.active {
+            display: block;
+        }
 
-  // Save sales
-  if (data.type === 'sync_sales') {
-    const sheet = getOrCreate(ss, 'Sales');
-    ensureHeader(sheet, ['clientCode', 'date', 'product', 'category', 'units', 'revenue', 'cost', 'gross', 'channel', 'notes', 'recordedAt']);
-    clearClientData(sheet, clientCode);
-    
-    (data.sales || []).forEach(sale => {
-      sheet.appendRow([
-        clientCode,
-        sale.date,
-        sale.product,
-        sale.category,
-        sale.units,
-        sale.revenue,
-        sale.cost,
-        sale.gross,
-        sale.channel,
-        sale.notes,
-        new Date().toISOString()
-      ]);
-    });
-    return jsonResponse({ status: 'ok', synced: data.sales.length });
-  }
+        .form-group {
+            margin-bottom: 1rem;
+        }
 
-  return jsonResponse({ status: 'ok', note: 'Received: ' + data.type });
-}
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
 
-// ============================================
-// CONFIG HELPERS
-// ============================================
+        input, select, textarea {
+            width: 100%;
+            padding: 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
 
-function getClientConfig(clientCode) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = getOrCreate(ss, 'Config');
-  ensureHeader(sheet, ['clientCode', 'businessName', 'created']);
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #0f6e56;
+            box-shadow: 0 0 0 3px rgba(15, 110, 86, 0.1);
+        }
 
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if ((data[i][0] || '').toLowerCase() === clientCode) {
-      return {
-        clientCode: data[i][0],
-        businessName: data[i][1],
-        created: data[i][2]
-      };
-    }
-  }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
 
-  return {}; // Empty = new client
-}
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
 
-function saveClientConfig(clientCode, config) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = getOrCreate(ss, 'Config');
-  ensureHeader(sheet, ['clientCode', 'businessName', 'created']);
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
 
-  const data = sheet.getDataRange().getValues();
-  const values = [clientCode, config.businessName, config.created];
+        .btn-primary {
+            background: #0f6e56;
+            color: white;
+        }
 
-  // Update if exists
-  for (let i = 1; i < data.length; i++) {
-    if ((data[i][0] || '').toLowerCase() === clientCode) {
-      sheet.getRange(i + 1, 1, 1, values.length).setValues([values]);
-      return;
-    }
-  }
+        .btn-primary:hover {
+            background: #0d5a47;
+        }
 
-  // Add if new
-  sheet.appendRow(values);
-}
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
 
-function getClientData(clientCode) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
 
-  function sheetToArray(sheetName) {
-    const sheet = ss.getSheetByName(sheetName);
-    if (!sheet) return [];
+        .btn-danger {
+            background: #d32f2f;
+            color: white;
+        }
 
-    const rows = sheet.getDataRange().getValues();
-    if (rows.length < 2) return [];
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
 
-    const headers = rows[0];
-    return rows.slice(1)
-      .filter(r => (r[0] || '').toLowerCase() === clientCode)
-      .map(r => {
-        const obj = {};
-        headers.forEach((h, i) => {
-          obj[h] = r[i];
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f5f5f5;
+            padding: 0.8rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+            font-size: 0.9rem;
+        }
+
+        td {
+            padding: 0.8rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: #fafafa;
+        }
+
+        .empty-state {
+            background: white;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 8px;
+            color: #999;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .alert-success {
+            background: #c8e6c9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .alert-error {
+            background: #ffcdd2;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .alert-info {
+            background: #bbdefb;
+            color: #1565c0;
+            border-left: 4px solid #1565c0;
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .recipe-item {
+            background: #f5f5f5;
+            padding: 0.8rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .recipe-input {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .recipe-input input {
+            flex: 1;
+        }
+
+        .recipe-input select {
+            flex: 0.8;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #0f6e56;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #999;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📦 Inventory Manager</h1>
+        <div class="sync-status">
+            <span id="syncStatus">● Offline mode</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="alerts"></div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('ingredients')">Ingredients</button>
+            <button class="tab-btn" onclick="switchTab('products')">Products</button>
+            <button class="tab-btn" onclick="switchTab('sales')">Sales</button>
+            <button class="tab-btn" onclick="switchTab('stock')">Stock</button>
+            <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats" id="statsContainer">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalIngredients">0</div>
+                    <div class="stat-label">Ingredients</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalProducts">0</div>
+                    <div class="stat-label">Products</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSales">0</div>
+                    <div class="stat-label">Today's Sales</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="lowStock">0</div>
+                    <div class="stat-label">Low Stock Alerts</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Recent Sales</h2>
+                <table id="recentSalesTable">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Units</th>
+                            <th>Revenue</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- INGREDIENTS TAB -->
+        <div id="ingredients" class="tab-content">
+            <div class="card">
+                <h2>Add Ingredient</h2>
+                <form onsubmit="addIngredient(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ingredient Name *</label>
+                            <input type="text" id="ingredientName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Unit</label>
+                            <select id="ingredientUnit">
+                                <option>kg</option>
+                                <option>g</option>
+                                <option>L</option>
+                                <option>ml</option>
+                                <option>unit</option>
+                                <option>pack</option>
+                                <option>bag</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cost per unit (₦)</label>
+                            <input type="number" id="ingredientCost" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock on hand</label>
+                            <input type="number" id="ingredientStock" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Reorder level</label>
+                            <input type="number" id="ingredientReorder" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Supplier</label>
+                            <input type="text" id="ingredientSupplier">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Ingredient</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>All Ingredients</h2>
+                <div class="table-container">
+                    <table id="ingredientsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Unit</th>
+                                <th>Cost</th>
+                                <th>Stock</th>
+                                <th>Reorder</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="ingredientsEmpty" class="empty-state">No ingredients yet</div>
+            </div>
+        </div>
+
+        <!-- PRODUCTS TAB -->
+        <div id="products" class="tab-content">
+            <div class="card">
+                <h2>Add Product/Recipe</h2>
+                <form onsubmit="addProduct(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" id="productName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <input type="text" id="productCategory">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Selling Price (₦)</label>
+                        <input type="number" id="productPrice" min="0" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Recipe Ingredients</label>
+                        <div class="recipe-input">
+                            <select id="recipeIngredient">
+                                <option value="">Select ingredient...</option>
+                            </select>
+                            <input type="number" id="recipeQty" placeholder="Qty" min="0" step="0.01">
+                            <button type="button" class="btn btn-secondary btn-small" onclick="addRecipeItem()">Add</button>
+                        </div>
+                        <div id="recipeItems"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Product</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>All Products</h2>
+                <div class="table-container">
+                    <table id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Raw Cost</th>
+                                <th>Margin</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="productsEmpty" class="empty-state">No products yet</div>
+            </div>
+        </div>
+
+        <!-- SALES TAB -->
+        <div id="sales" class="tab-content">
+            <div class="card">
+                <h2>Log a Sale</h2>
+                <form onsubmit="addSale(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Product *</label>
+                            <select id="saleProduct" required>
+                                <option value="">Select product...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Units Sold</label>
+                            <input type="number" id="saleUnits" min="1" value="1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Channel</label>
+                            <select id="saleChannel">
+                                <option>Direct</option>
+                                <option>ORDA</option>
+                                <option>Chowdeck</option>
+                                <option>Glovo</option>
+                                <option>WhatsApp</option>
+                                <option>Walk-in</option>
+                                <option>Corporate</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <input type="text" id="saleNotes">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Record Sale</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Sales History</h2>
+                <div class="table-container">
+                    <table id="salesTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Product</th>
+                                <th>Units</th>
+                                <th>Revenue</th>
+                                <th>Channel</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="salesEmpty" class="empty-state">No sales yet</div>
+            </div>
+        </div>
+
+        <!-- STOCK TAB -->
+        <div id="stock" class="tab-content">
+            <div class="card">
+                <h2>Adjust Stock</h2>
+                <form onsubmit="adjustStock(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ingredient *</label>
+                            <select id="adjustIngredient" required>
+                                <option value="">Select ingredient...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Adjustment Type</label>
+                            <select id="adjustmentType">
+                                <option value="restock">Restock (add)</option>
+                                <option value="waste">Waste/Spoilage</option>
+                                <option value="exact">Set exact qty</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Quantity</label>
+                            <input type="number" id="adjustQty" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <input type="text" id="adjustNotes">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Apply Adjustment</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Stock Levels</h2>
+                <div class="table-container">
+                    <table id="stockTable">
+                        <thead>
+                            <tr>
+                                <th>Ingredient</th>
+                                <th>Unit</th>
+                                <th>On Hand</th>
+                                <th>Reorder Level</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="stockEmpty" class="empty-state">No ingredients yet</div>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="settings" class="tab-content">
+            <div class="card">
+                <h2>Business Settings</h2>
+                <div class="form-group">
+                    <label>Business Name</label>
+                    <input type="text" id="businessName">
+                </div>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Name</button>
+            </div>
+
+            <div class="card">
+                <h2>Google Sheets Sync</h2>
+                <div class="form-group">
+                    <label>Google Apps Script URL</label>
+                    <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/...">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
+                    <button class="btn btn-primary" onclick="syncToSheets()">Sync Now</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Data Management</h2>
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="exportBackup()">Export Backup</button>
+                    <button class="btn btn-danger" onclick="resetAllData()">Reset All Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // LOCAL STORAGE & DATA MANAGEMENT
+        // ============================================
+
+        const DB = {
+            ingredients: [],
+            products: [],
+            sales: [],
+            settings: {}
+        };
+
+        function loadData() {
+            const stored = localStorage.getItem('inventoryData');
+            if (stored) {
+                try {
+                    Object.assign(DB, JSON.parse(stored));
+                } catch(e) {
+                    console.error('Error loading data:', e);
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('inventoryData', JSON.stringify(DB));
+        }
+
+        function loadDataOnStart() {
+            loadData();
+            updateAllDisplays();
+            populateSelects();
+            checkLowStock();
+        }
+
+        // ============================================
+        // UI FUNCTIONS
+        // ============================================
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertsDiv = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertsDiv.appendChild(alert);
+            setTimeout(() => alert.remove(), 4000);
+        }
+
+        // ============================================
+        // INGREDIENTS
+        // ============================================
+
+        function addIngredient(event) {
+            event.preventDefault();
+            const ingredient = {
+                id: Date.now(),
+                name: document.getElementById('ingredientName').value,
+                unit: document.getElementById('ingredientUnit').value,
+                cost: parseFloat(document.getElementById('ingredientCost').value) || 0,
+                stock: parseFloat(document.getElementById('ingredientStock').value) || 0,
+                reorder: parseFloat(document.getElementById('ingredientReorder').value) || 0,
+                supplier: document.getElementById('ingredientSupplier').value
+            };
+
+            DB.ingredients.push(ingredient);
+            saveData();
+            populateSelects();
+            displayIngredients();
+            event.target.reset();
+            showAlert('Ingredient added successfully!');
+        }
+
+        function deleteIngredient(id) {
+            if (confirm('Delete this ingredient?')) {
+                DB.ingredients = DB.ingredients.filter(i => i.id !== id);
+                saveData();
+                populateSelects();
+                displayIngredients();
+                showAlert('Ingredient deleted');
+            }
+        }
+
+        function displayIngredients() {
+            const tbody = document.querySelector('#ingredientsTable tbody');
+            const empty = document.getElementById('ingredientsEmpty');
+
+            if (DB.ingredients.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = DB.ingredients.map(ing => `
+                <tr>
+                    <td>${ing.name}</td>
+                    <td>${ing.unit}</td>
+                    <td>₦${ing.cost.toFixed(2)}</td>
+                    <td>${ing.stock}</td>
+                    <td>${ing.reorder}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-small" onclick="editIngredient(${ing.id})">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteIngredient(${ing.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editIngredient(id) {
+            const ing = DB.ingredients.find(i => i.id === id);
+            if (ing) {
+                document.getElementById('ingredientName').value = ing.name;
+                document.getElementById('ingredientUnit').value = ing.unit;
+                document.getElementById('ingredientCost').value = ing.cost;
+                document.getElementById('ingredientStock').value = ing.stock;
+                document.getElementById('ingredientReorder').value = ing.reorder;
+                document.getElementById('ingredientSupplier').value = ing.supplier;
+                deleteIngredient(id);
+                switchTab('ingredients');
+            }
+        }
+
+        // ============================================
+        // PRODUCTS
+        // ============================================
+
+        let currentRecipe = [];
+
+        function addRecipeItem() {
+            const ingredientId = document.getElementById('recipeIngredient').value;
+            const qty = parseFloat(document.getElementById('recipeQty').value);
+
+            if (!ingredientId || !qty) {
+                showAlert('Select ingredient and quantity', 'error');
+                return;
+            }
+
+            const ing = DB.ingredients.find(i => i.id == ingredientId);
+            currentRecipe.push({ ingredientId: parseInt(ingredientId), qty });
+            displayRecipeItems();
+            document.getElementById('recipeQty').value = '';
+        }
+
+        function displayRecipeItems() {
+            const container = document.getElementById('recipeItems');
+            container.innerHTML = currentRecipe.map((item, idx) => {
+                const ing = DB.ingredients.find(i => i.id == item.ingredientId);
+                return `
+                    <div class="recipe-item">
+                        <span>${ing?.name} - ${item.qty}${ing?.unit}</span>
+                        <button type="button" class="btn btn-danger btn-small" onclick="removeRecipeItem(${idx})">Remove</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function removeRecipeItem(idx) {
+            currentRecipe.splice(idx, 1);
+            displayRecipeItems();
+        }
+
+        function addProduct(event) {
+            event.preventDefault();
+            const product = {
+                id: Date.now(),
+                name: document.getElementById('productName').value,
+                category: document.getElementById('productCategory').value,
+                price: parseFloat(document.getElementById('productPrice').value) || 0,
+                recipe: currentRecipe
+            };
+
+            DB.products.push(product);
+            saveData();
+            populateSelects();
+            displayProducts();
+            event.target.reset();
+            currentRecipe = [];
+            displayRecipeItems();
+            showAlert('Product added successfully!');
+        }
+
+        function deleteProduct(id) {
+            if (confirm('Delete this product?')) {
+                DB.products = DB.products.filter(p => p.id !== id);
+                saveData();
+                populateSelects();
+                displayProducts();
+                showAlert('Product deleted');
+            }
+        }
+
+        function calculateRawCost(recipe) {
+            return recipe.reduce((total, item) => {
+                const ing = DB.ingredients.find(i => i.id == item.ingredientId);
+                return total + (ing?.cost || 0) * item.qty;
+            }, 0);
+        }
+
+        function displayProducts() {
+            const tbody = document.querySelector('#productsTable tbody');
+            const empty = document.getElementById('productsEmpty');
+
+            if (DB.products.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = DB.products.map(prod => {
+                const rawCost = calculateRawCost(prod.recipe);
+                const margin = prod.price - rawCost;
+                const marginPct = prod.price > 0 ? ((margin / prod.price) * 100).toFixed(1) : 0;
+                return `
+                    <tr>
+                        <td>${prod.name}</td>
+                        <td>${prod.category}</td>
+                        <td>₦${prod.price.toFixed(2)}</td>
+                        <td>₦${rawCost.toFixed(2)}</td>
+                        <td>${marginPct}%</td>
+                        <td>
+                            <button class="btn btn-secondary btn-small" onclick="editProduct(${prod.id})">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteProduct(${prod.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function editProduct(id) {
+            const prod = DB.products.find(p => p.id === id);
+            if (prod) {
+                document.getElementById('productName').value = prod.name;
+                document.getElementById('productCategory').value = prod.category;
+                document.getElementById('productPrice').value = prod.price;
+                currentRecipe = prod.recipe;
+                displayRecipeItems();
+                deleteProduct(id);
+                switchTab('products');
+            }
+        }
+
+        // ============================================
+        // SALES
+        // ============================================
+
+        function addSale(event) {
+            event.preventDefault();
+            const productId = parseInt(document.getElementById('saleProduct').value);
+            const product = DB.products.find(p => p.id === productId);
+
+            if (!product) {
+                showAlert('Select a product', 'error');
+                return;
+            }
+
+            const units = parseInt(document.getElementById('saleUnits').value) || 1;
+            const revenue = product.price * units;
+            const rawCost = calculateRawCost(product.recipe) * units;
+
+            const sale = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                product: product.name,
+                category: product.category,
+                units,
+                revenue,
+                cost: rawCost,
+                gross: revenue - rawCost,
+                channel: document.getElementById('saleChannel').value,
+                notes: document.getElementById('saleNotes').value
+            };
+
+            DB.sales.push(sale);
+
+            // Update ingredient stock
+            product.recipe.forEach(item => {
+                const ing = DB.ingredients.find(i => i.id == item.ingredientId);
+                if (ing) ing.stock -= item.qty * units;
+            });
+
+            saveData();
+            displaySales();
+            displayStockLevels();
+            updateDashboard();
+            event.target.reset();
+            showAlert('Sale recorded successfully!');
+        }
+
+        function deleteSale(id) {
+            if (confirm('Delete this sale?')) {
+                DB.sales = DB.sales.filter(s => s.id !== id);
+                saveData();
+                displaySales();
+                updateDashboard();
+                showAlert('Sale deleted');
+            }
+        }
+
+        function displaySales() {
+            const tbody = document.querySelector('#salesTable tbody');
+            const empty = document.getElementById('salesEmpty');
+
+            if (DB.sales.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = DB.sales.slice().reverse().map(sale => `
+                <tr>
+                    <td>${sale.date}</td>
+                    <td>${sale.product}</td>
+                    <td>${sale.units}</td>
+                    <td>₦${sale.revenue.toFixed(2)}</td>
+                    <td>${sale.channel}</td>
+                    <td>
+                        <button class="btn btn-danger btn-small" onclick="deleteSale(${sale.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ============================================
+        // STOCK
+        // ============================================
+
+        function adjustStock(event) {
+            event.preventDefault();
+            const ingredientId = parseInt(document.getElementById('adjustIngredient').value);
+            const ing = DB.ingredients.find(i => i.id === ingredientId);
+
+            if (!ing) {
+                showAlert('Select an ingredient', 'error');
+                return;
+            }
+
+            const type = document.getElementById('adjustmentType').value;
+            const qty = parseFloat(document.getElementById('adjustQty').value);
+            const before = ing.stock;
+
+            if (type === 'restock') {
+                ing.stock += qty;
+            } else if (type === 'waste') {
+                ing.stock -= qty;
+            } else if (type === 'exact') {
+                ing.stock = qty;
+            }
+
+            saveData();
+            displayStockLevels();
+            updateDashboard();
+            event.target.reset();
+            showAlert('Stock adjusted successfully!');
+        }
+
+        function displayStockLevels() {
+            const tbody = document.querySelector('#stockTable tbody');
+            const empty = document.getElementById('stockEmpty');
+
+            if (DB.ingredients.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = DB.ingredients.map(ing => {
+                let status = 'OK';
+                let statusColor = 'green';
+                if (ing.stock < ing.reorder) {
+                    status = 'LOW STOCK';
+                    statusColor = 'red';
+                }
+                return `
+                    <tr>
+                        <td>${ing.name}</td>
+                        <td>${ing.unit}</td>
+                        <td>${ing.stock}</td>
+                        <td>${ing.reorder}</td>
+                        <td style="color: ${statusColor}">${status}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // DASHBOARD
+        // ============================================
+
+        function updateDashboard() {
+            document.getElementById('totalIngredients').textContent = DB.ingredients.length;
+            document.getElementById('totalProducts').textContent = DB.products.length;
+
+            const today = new Date().toLocaleDateString();
+            const todaysSales = DB.sales.filter(s => s.date.includes(today)).length;
+            document.getElementById('totalSales').textContent = todaysSales;
+
+            const low = DB.ingredients.filter(i => i.stock < i.reorder).length;
+            document.getElementById('lowStock').textContent = low;
+
+            // Recent sales
+            const tbody = document.querySelector('#recentSalesTable tbody');
+            const recent = DB.sales.slice(-5).reverse();
+            tbody.innerHTML = recent.map(s => `
+                <tr>
+                    <td>${s.product}</td>
+                    <td>${s.units}</td>
+                    <td>₦${s.revenue.toFixed(2)}</td>
+                    <td>${s.date.split(',')[1]}</td>
+                </tr>
+            `).join('');
+        }
+
+        function checkLowStock() {
+            const low = DB.ingredients.filter(i => i.stock < i.reorder);
+            if (low.length > 0) {
+                showAlert(`⚠️ ${low.length} ingredient(s) below reorder level`, 'info');
+            }
+        }
+
+        // ============================================
+        // SETTINGS
+        // ============================================
+
+        function saveSettings() {
+            DB.settings.businessName = document.getElementById('businessName').value;
+            saveData();
+            showAlert('Settings saved!');
+        }
+
+        function testConnection() {
+            const url = document.getElementById('scriptUrl').value;
+            if (!url) {
+                showAlert('Enter script URL', 'error');
+                return;
+            }
+            showAlert('Testing connection...', 'info');
+            fetch(url + '?type=config&c=test', { method: 'GET' })
+                .then(r => r.json())
+                .then(d => showAlert('✓ Connection successful!', 'success'))
+                .catch(e => showAlert('✗ Connection failed: ' + e.message, 'error'));
+        }
+
+        function syncToSheets() {
+            const url = document.getElementById('scriptUrl').value;
+            if (!url) {
+                showAlert('Enter script URL first', 'error');
+                return;
+            }
+            showAlert('Syncing to Google Sheets...', 'info');
+            // This would send all data to the Apps Script
+            // Implementation depends on your backend setup
+        }
+
+        function exportBackup() {
+            const json = JSON.stringify(DB, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `inventory-backup-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            showAlert('Backup downloaded!');
+        }
+
+        function resetAllData() {
+            if (confirm('This will delete ALL data. Are you sure?')) {
+                if (confirm('Really? This cannot be undone!')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            }
+        }
+
+        // ============================================
+        // HELPERS
+        // ============================================
+
+        function populateSelects() {
+            const ingSelect = document.getElementById('recipeIngredient');
+            const productSelect = document.getElementById('saleProduct');
+            const adjustSelect = document.getElementById('adjustIngredient');
+
+            ingSelect.innerHTML = '<option value="">Select ingredient...</option>' +
+                DB.ingredients.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+
+            productSelect.innerHTML = '<option value="">Select product...</option>' +
+                DB.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+            adjustSelect.innerHTML = '<option value="">Select ingredient...</option>' +
+                DB.ingredients.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+        }
+
+        function updateAllDisplays() {
+            displayIngredients();
+            displayProducts();
+            displaySales();
+            displayStockLevels();
+            updateDashboard();
+        }
+
+        // ============================================
+        // INIT
+        // ============================================
+
+        window.addEventListener('load', loadDataOnStart);
+        
+        // Check if online/offline
+        window.addEventListener('online', () => {
+            document.getElementById('syncStatus').textContent = '● Online - ready to sync';
         });
-        return obj;
-      });
-  }
-
-  const rawIngs = sheetToArray('Ingredients');
-  const rawProds = sheetToArray('Products');
-
-  const ingredients = rawIngs.map(r => ({
-    id: r.id,
-    name: r.name,
-    unit: r.unit,
-    cost: parseFloat(r.cost) || 0,
-    stock: parseFloat(r.stock) || 0,
-    reorder: parseFloat(r.reorder) || 0,
-    supplier: r.supplier
-  }));
-
-  const products = rawProds.map(r => {
-    let recipe = [];
-    try {
-      recipe = JSON.parse(r.recipe || '[]');
-    } catch (e) {}
-    return {
-      id: r.id,
-      name: r.name,
-      category: r.category,
-      price: parseFloat(r.price) || 0,
-      recipe: recipe
-    };
-  });
-
-  const cfg = getClientConfig(clientCode);
-  return {
-    ingredients,
-    products,
-    settings: { businessName: cfg.businessName || '' }
-  };
-}
-
-// ============================================
-// SHEET UTILITIES
-// ============================================
-
-function getOrCreate(ss, name) {
-  return ss.getSheetByName(name) || ss.insertSheet(name);
-}
-
-function ensureHeader(sheet, headers) {
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-  }
-}
-
-function clearClientData(sheet, clientCode) {
-  const data = sheet.getDataRange().getValues();
-  for (let i = data.length - 1; i > 0; i--) {
-    if ((data[i][0] || '').toLowerCase() === clientCode) {
-      sheet.deleteRow(i + 1);
-    }
-  }
-}
-
-function jsonResponse(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+        window.addEventListener('offline', () => {
+            document.getElementById('syncStatus').textContent = '● Offline mode';
+        });
+    </script>
+</body>
+</html>
