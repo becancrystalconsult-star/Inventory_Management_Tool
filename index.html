@@ -487,6 +487,7 @@
                     <table id="recentProductionsTable">
                         <thead>
                             <tr>
+                                <th>Batch ID</th>
                                 <th>Date</th>
                                 <th>Location</th>
                                 <th>Product</th>
@@ -709,12 +710,16 @@
                                 <input type="text" id="ingredientName" required>
                             </div>
                             <div class="form-group">
-                                <label>Unit</label>
+                                <label>UoM (Unit of Measurement)</label>
                                 <select id="ingredientUnit">
                                     <option>kg</option>
                                     <option>g</option>
                                     <option>L</option>
                                     <option>ml</option>
+                                    <option>Ltrs</option>
+                                    <option>pcs</option>
+                                    <option>box</option>
+                                    <option>pck</option>
                                     <option>unit</option>
                                 </select>
                             </div>
@@ -769,7 +774,10 @@
                             <button type="button" class="btn btn-secondary btn-small" style="margin-top: 0.5rem;" onclick="addRecipeItem()">Add to Recipe</button>
                             <div id="finishedRecipe" style="margin-top: 1rem;"></div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Save Product</button>
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-primary">Save Product</button>
+                            <button type="button" class="btn btn-secondary" onclick="cancelProductEdit()" id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+                        </div>
                     </form>
                 </div>
 
@@ -840,6 +848,7 @@
                     <table id="productionTable">
                         <thead>
                             <tr>
+                                <th>Batch ID</th>
                                 <th>Date</th>
                                 <th>Location</th>
                                 <th>Product</th>
@@ -1375,6 +1384,7 @@
                 created: new Date().toISOString()
             });
 
+            logActivity('location_added', `Added location: ${document.getElementById('locationName').value}`);
             saveData();
             displayLocations();
             populateLocationSelects();
@@ -1430,7 +1440,15 @@
             const data = getClientData();
             const pin = document.getElementById('staffNewPin').value;
             const role = document.getElementById('staffRole').value;
-            const locationId = role === 'staff' ? document.getElementById('staffLocation').value : null;
+            let locationId = null;
+            
+            // Only assign location if role is 'staff' and location is selected
+            if (role === 'staff') {
+                const selectedLocation = document.getElementById('staffLocation').value;
+                if (selectedLocation) {
+                    locationId = selectedLocation;
+                }
+            }
 
             const usedStaff = Object.keys(client.staff).length;
             if (usedStaff >= client.maxStaff) {
@@ -1443,16 +1461,18 @@
                 return;
             }
 
+            const staffName = document.getElementById('staffName').value;
             client.staff[pin] = {
-                name: document.getElementById('staffName').value,
+                name: staffName,
                 role: role,
-                locationId: locationId || null
+                locationId: locationId
             };
 
+            logActivity('staff_added', `Added staff: ${staffName} (${role})${locationId ? ' - Location ID: ' + locationId : ''}`);
             saveData();
             displayStaff();
             event.target.reset();
-            showAlert('Staff added!');
+            showAlert('Staff added successfully!');
         }
 
         function displayStaff() {
@@ -1644,25 +1664,47 @@
             event.preventDefault();
             const data = getClientData();
             const price = parseFloat(document.getElementById('finishedPrice').value) || 0;
+            const name = document.getElementById('finishedName').value;
 
             let recipeCost = 0;
             currentRecipe.finished.forEach(item => {
                 recipeCost += item.qty * item.costPerUnit;
             });
 
-            const product = {
-                id: Date.now(),
-                type: 'finished',
-                name: document.getElementById('finishedName').value,
-                sellingPrice: price,
-                stock: 0,
-                recipe: currentRecipe.finished || [],
-                costPerUnit: recipeCost,
-                profitPerUnit: price - recipeCost,
-                profitMargin: recipeCost > 0 ? ((price - recipeCost) / price * 100).toFixed(1) : 0
-            };
+            // Check if editing existing product
+            if (window.editingProductId) {
+                const productIndex = data.products.findIndex(p => p.id === window.editingProductId);
+                if (productIndex !== -1) {
+                    // Update existing product
+                    data.products[productIndex].name = name;
+                    data.products[productIndex].sellingPrice = price;
+                    data.products[productIndex].recipe = currentRecipe.finished || [];
+                    data.products[productIndex].costPerUnit = recipeCost;
+                    data.products[productIndex].profitPerUnit = price - recipeCost;
+                    data.products[productIndex].profitMargin = recipeCost > 0 ? ((price - recipeCost) / price * 100).toFixed(1) : 0;
+                    
+                    logActivity('product_updated', `Updated product: ${name}`);
+                    showAlert('Product recipe updated successfully!', 'success');
+                }
+            } else {
+                // Create new product
+                const product = {
+                    id: Date.now(),
+                    type: 'finished',
+                    name: name,
+                    sellingPrice: price,
+                    stock: 0,
+                    recipe: currentRecipe.finished || [],
+                    costPerUnit: recipeCost,
+                    profitPerUnit: price - recipeCost,
+                    profitMargin: recipeCost > 0 ? ((price - recipeCost) / price * 100).toFixed(1) : 0
+                };
 
-            data.products.push(product);
+                data.products.push(product);
+                logActivity('product_created', `Created product: ${name} - ₦${price.toFixed(2)}`);
+                showAlert('Product created!', 'success');
+            }
+
             saveData();
             displayProducts();
             populateRecipeSelects();
@@ -1671,7 +1713,8 @@
             currentRecipe.finished = [];
             event.target.reset();
             displayRecipeItems();
-            showAlert('Product created!');
+            window.editingProductId = null;
+            document.getElementById('cancelEditBtn').style.display = 'none';
         }
 
         function displayProducts() {
@@ -1696,6 +1739,7 @@
                     <td>${p.profitMargin}%</td>
                     <td>${p.recipe.length} ingredients</td>
                     <td>
+                        <button class="btn btn-secondary btn-small" onclick="editProductRecipe(${p.id})">Edit Recipe</button>
                         <button class="btn btn-danger btn-small" onclick="deleteProduct(${p.id})">Delete</button>
                     </td>
                 </tr>
@@ -1712,6 +1756,38 @@
             populateSalesSelect();
             showAlert('Product deleted');
         }
+
+        function editProductRecipe(productId) {
+            const data = getClientData();
+            const product = data.products.find(p => p.id === productId);
+            if (!product) return;
+
+            // Load product data into form
+            currentRecipe.finished = JSON.parse(JSON.stringify(product.recipe));
+            document.getElementById('finishedName').value = product.name;
+            document.getElementById('finishedPrice').value = product.sellingPrice;
+            
+            // Show cancel button and hide it after save
+            window.editingProductId = productId;
+            document.getElementById('cancelEditBtn').style.display = 'inline-block';
+            
+            displayRecipeItems();
+            showAlert('Editing product recipe - update and click Save Product', 'warning');
+        }
+
+        function cancelProductEdit() {
+            window.editingProductId = null;
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.getElementById('finishedName').value = '';
+            document.getElementById('finishedPrice').value = '';
+            currentRecipe.finished = [];
+            displayRecipeItems();
+            showAlert('Product edit cancelled');
+        }
+
+        // ============================================
+        // PRODUCT DISPLAY & RECIPES
+        // ============================================
 
         // ============================================
         // PRODUCTION WITH AUTO-BILLING
@@ -1768,8 +1844,14 @@
             const costPerUnit = qty > 0 ? totalCost / qty : 0;
             const billableAmount = qty * client.rate;
 
+            // Generate batch ID for this production
+            const batchTimestamp = Date.now();
+            const batchRandom = Math.random().toString(36).substring(2, 9).toUpperCase();
+            const batchId = `PROD-${batchTimestamp}-${batchRandom}`;
+
             data.production.push({
                 id: Date.now(),
+                batchId: batchId,
                 date: new Date().toLocaleString(),
                 productId: product.id,
                 productName: product.name,
@@ -1789,12 +1871,14 @@
             client.productions = (client.productions || 0) + 1;
             client.totalBillable = (client.totalBillable || 0) + billableAmount;
 
+            logActivity('production_logged', `Produced ${qty} units of ${product.name} - Batch ID: ${batchId} - Billable: ₦${billableAmount.toFixed(2)}`);
+
             saveData();
             displayProduction();
             displayIngredients();
             updateDashboard();
             event.target.reset();
-            showAlert(`Production logged! Billable: ₦${billableAmount.toFixed(2)}`);
+            showAlert(`Production logged! Batch ID: ${batchId} | Billable: ₦${billableAmount.toFixed(2)}`);
         }
 
         function displayProduction() {
@@ -1813,6 +1897,7 @@
                 const location = data.locations.find(l => l.id == p.locationId);
                 return `
                     <tr>
+                        <td><strong>${p.batchId || 'N/A'}</strong></td>
                         <td>${p.date}</td>
                         <td>${location ? location.name : 'Unknown'}</td>
                         <td>${p.productName}</td>
@@ -2128,6 +2213,7 @@
                 const location = data.locations.find(l => l.id == p.locationId);
                 return `
                     <tr>
+                        <td><strong>${p.batchId || 'N/A'}</strong></td>
                         <td>${p.date}</td>
                         <td>${location ? location.name : 'Unknown'}</td>
                         <td>${p.productName}</td>
@@ -2162,6 +2248,32 @@
             alert.textContent = msg;
             div.appendChild(alert);
             setTimeout(() => alert.remove(), 4000);
+        }
+
+        function logActivity(type, description) {
+            const data = getClientData();
+            
+            // Generate unique activity ID: ACT-TIMESTAMP-BATCHID
+            const timestamp = Date.now();
+            const batchId = Math.random().toString(36).substring(2, 9).toUpperCase();
+            const activityId = `ACT-${timestamp}-${batchId}`;
+
+            const activity = {
+                id: activityId,
+                timestamp: new Date().toISOString(),
+                date: new Date().toLocaleString(),
+                type: type,
+                batchId: batchId,
+                description: description,
+                userId: AUTH.staffPin || 'system'
+            };
+
+            if (!data.activities) {
+                data.activities = [];
+            }
+            
+            data.activities.push(activity);
+            saveData();
         }
 
         function populateRecipeSelects() {
