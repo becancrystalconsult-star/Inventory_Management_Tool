@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Becan Inventory System - SaaS</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230f6e56' width='100' height='100'/><circle cx='50' cy='45' r='30' fill='none' stroke='%23fff' stroke-width='3'/><path d='M30 50 Q50 65 70 50' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/><text x='50' y='85' font-size='24' font-weight='bold' fill='%23fff' text-anchor='middle' font-family='Arial'>B</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -446,8 +447,7 @@
                 <button class="tab-btn" onclick="switchTab('products')">Products</button>
                 <button class="tab-btn" onclick="switchTab('production')">Production</button>
                 <button class="tab-btn" onclick="switchTab('sales')">Sales</button>
-                <button class="tab-btn" id="billingTabBtn" onclick="switchTab('billing')" style="display:none;">Billing</button>
-                <button class="tab-btn" id="invoiceTabBtn" onclick="switchTab('invoices')" style="display:none;">Invoices</button>
+                <button class="tab-btn" id="billsTabBtn" onclick="switchTab('bills')" style="display:none;">📄 Bills</button>
                 <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
             </div>
 
@@ -951,48 +951,8 @@
                 </div>
             </div>
 
-            <!-- BILLING (Client Admin & Platform Admin) -->
-            <div id="billing" class="tab-content">
-                <div class="card">
-                    <h2>💰 Billing Summary</h2>
-                    <div class="stats">
-                        <div class="stat-card">
-                            <div class="stat-value" id="billingProductions">0</div>
-                            <div class="stat-label">Total Productions</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="billingRate">₦0</div>
-                            <div class="stat-label">Rate per Production</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="billingTotal">₦0</div>
-                            <div class="stat-label">Total Billable</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2>Production Billing Breakdown</h2>
-                    <table id="billingTable">
-                        <thead>
-                            <tr>
-                                <th>Month</th>
-                                <th>Productions</th>
-                                <th>Rate/Production</th>
-                                <th>Subtotal (₦)</th>
-                                <th>VAT & Tax</th>
-                                <th>Total Due (₦)</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                    <div id="billingEmpty" class="empty-state">No billings yet</div>
-                </div>
-            </div>
-
-            <!-- INVOICES -->
-            <div id="invoices" class="tab-content">
+            <!-- BILLS & INVOICING (Client Admin & Platform Admin) -->
+            <div id="bills" class="tab-content">
                 <div class="card">
                     <h2>📄 Generate Monthly Invoice</h2>
                     <form onsubmit="generateInvoice(event)">
@@ -1224,8 +1184,7 @@
             } else {
                 document.getElementById('locationTabBtn').style.display = 'inline-block';
                 document.getElementById('staffTabBtn').style.display = 'inline-block';
-                document.getElementById('billingTabBtn').style.display = 'inline-block';
-                document.getElementById('invoiceTabBtn').style.display = 'inline-block';
+                document.getElementById('billsTabBtn').style.display = 'inline-block';
                 
                 if (['admin', 'manager'].includes(AUTH.role)) {
                     document.getElementById('locationSelectContainer').style.display = 'block';
@@ -1813,20 +1772,29 @@
             }
 
             empty.style.display = 'none';
-            tbody.innerHTML = products.map(p => `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>₦${p.sellingPrice.toFixed(2)}</td>
-                    <td>₦${p.costPerUnit.toFixed(2)}</td>
-                    <td>₦${p.profitPerUnit.toFixed(2)}</td>
-                    <td>${p.profitMargin}%</td>
-                    <td>${p.recipe.length} ingredients</td>
-                    <td>
-                        <button class="btn btn-secondary btn-small" onclick="editProductRecipe(${p.id})">Edit Recipe</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteProduct(${p.id})">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = products.map(p => {
+                const productionCount = data.production.filter(prod => prod.productId === p.id).length;
+                const isLocked = productionCount > 0;
+                const editButton = isLocked 
+                    ? `<button class="btn btn-secondary btn-small" disabled style="opacity: 0.5; cursor: not-allowed;" title="🔒 Locked - used in ${productionCount} production(s)">🔒 Locked</button>`
+                    : `<button class="btn btn-secondary btn-small" onclick="editProductRecipe(${p.id})">Edit Recipe</button>`;
+                
+                return `
+                    <tr ${isLocked ? 'style="background: #f9f9f9;"' : ''}>
+                        <td>${p.name}</td>
+                        <td>₦${p.sellingPrice.toFixed(2)}</td>
+                        <td>₦${p.costPerUnit.toFixed(2)}</td>
+                        <td>₦${p.profitPerUnit.toFixed(2)}</td>
+                        <td>${p.profitMargin}%</td>
+                        <td>${p.recipe.length} ingredients</td>
+                        <td>
+                            ${editButton}
+                            <button class="btn btn-danger btn-small" onclick="deleteProduct(${p.id})" ${isLocked ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>Delete</button>
+                            ${isLocked ? `<small style="color: #c62828;">🔒 Used ${productionCount}x</small>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function deleteProduct(id) {
@@ -1844,6 +1812,13 @@
             const data = getClientData();
             const product = data.products.find(p => p.id === productId);
             if (!product) return;
+
+            // Check if product has been used in production
+            const productionCount = data.production.filter(p => p.productId === productId).length;
+            if (productionCount > 0) {
+                showAlert(`🔒 Cannot edit recipe - this product has been produced ${productionCount} time(s). Once a recipe is used in production, it cannot be edited.`, 'error');
+                return;
+            }
 
             // Load product data into form
             currentRecipe.finished = JSON.parse(JSON.stringify(product.recipe));
@@ -2140,7 +2115,7 @@
         // BILLING & INVOICES
         // ============================================
 
-        function displayBilling() {
+        function displayBills() {
             const data = getClientData();
             const client = DB.clients[AUTH.clientCode];
             const productions = data.production;
@@ -2265,12 +2240,12 @@
 
             data.invoices.push(invoice);
             saveData();
-            displayInvoices();
+            displayBills();
             showInvoice(invoice);
             showAlert('Invoice generated!');
         }
 
-        function displayInvoices() {
+        function displayBills() {
             const data = getClientData();
             const tbody = document.querySelector('#invoicesTable tbody');
             const empty = document.getElementById('invoicesEmpty');
@@ -2420,8 +2395,8 @@
             }).join('');
 
             if (AUTH.role === 'client' || AUTH.userType === 'platform') {
-                displayBilling();
-                displayInvoices();
+                displayBills();
+                displayBills();
             }
         }
 
@@ -2501,7 +2476,7 @@
             displaySales();
             displayLocations();
             displayStaff();
-            displayInvoices();
+            displayBills();
             updateDashboard();
             populateRecipeSelects();
             populateProductionSelect();
