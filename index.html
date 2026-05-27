@@ -610,6 +610,25 @@
                         <button type="submit" class="btn btn-primary">Update Limits</button>
                     </form>
                 </div>
+
+                <div class="card">
+                    <h2>Update Client VAT Rate</h2>
+                    <form onsubmit="updateClientVAT(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Select Client *</label>
+                                <select id="updateVATClientSelect" required>
+                                    <option value="">Choose client...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>VAT Rate (%) *</label>
+                                <input type="number" id="updateVATValue" min="0" max="100" step="0.01" placeholder="e.g., 7.5" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update VAT Rate</button>
+                    </form>
+                </div>
             </div>
 
             <!-- LOCATIONS (Client Admin) -->
@@ -880,7 +899,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Product *</label>
-                                <select id="saleProduct" required>
+                                <select id="saleProduct" required onchange="updateSalePrice()">
                                     <option value="">Select product...</option>
                                 </select>
                             </div>
@@ -891,6 +910,11 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group">
+                                <label>Sale Price per Unit (₦) *</label>
+                                <input type="number" id="salePrice" min="0" step="0.01" placeholder="Auto-filled from product" required>
+                                <small class="small-text" id="salePriceHint">Edit for discounted volume pricing (Admin only)</small>
+                            </div>
+                            <div class="form-group">
                                 <label>Channel</label>
                                 <select id="saleChannel">
                                     <option value="Direct">Direct</option>
@@ -898,10 +922,10 @@
                                     <option value="Walk-in">Walk-in</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Custom Channel (optional)</label>
-                                <input type="text" id="customChannel" placeholder="e.g., WhatsApp">
-                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Custom Channel (optional)</label>
+                            <input type="text" id="customChannel" placeholder="e.g., WhatsApp">
                         </div>
                         <button type="submit" class="btn btn-primary">Record Sale</button>
                     </form>
@@ -916,7 +940,8 @@
                                 <th>Location</th>
                                 <th>Product</th>
                                 <th>Qty</th>
-                                <th>Revenue</th>
+                                <th>Price/Unit (₦)</th>
+                                <th>Revenue (₦)</th>
                                 <th>Channel</th>
                             </tr>
                         </thead>
@@ -953,10 +978,10 @@
                             <tr>
                                 <th>Month</th>
                                 <th>Productions</th>
-                                <th>Rate per Production</th>
-                                <th>Total Billable</th>
-                                <th>Material Cost</th>
-                                <th>Labor Cost</th>
+                                <th>Rate/Production</th>
+                                <th>Subtotal (₦)</th>
+                                <th>VAT & Tax</th>
+                                <th>Total Due (₦)</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -1006,7 +1031,7 @@
             <!-- SETTINGS -->
             <div id="settings" class="tab-content">
                 <div class="card">
-                    <h2>Settings</h2>
+                    <h2>Account Information</h2>
                     <div class="form-group">
                         <label>User Type</label>
                         <input type="text" id="userType" disabled>
@@ -1015,15 +1040,46 @@
                         <label>Business Code</label>
                         <input type="text" id="currentClientCode" disabled>
                     </div>
+                    <div class="form-group">
+                        <label>Data Last Saved</label>
+                        <input type="text" id="lastSavedTime" disabled>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>💾 Automatic Backup Status</h2>
+                    <div style="padding: 1rem; background: #f5f5f5; border-radius: 6px; margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0;"><strong>Status:</strong> <span id="autoBackupStatus">Initializing...</span></p>
+                        <p style="margin: 0.5rem 0;"><strong>Last Backup:</strong> <span id="lastBackupTime">Never</span></p>
+                        <p style="margin: 0.5rem 0;"><strong>Auto-Backup Interval:</strong> Every 1 hour (when internet available)</p>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="autoBackupEnabled" checked onchange="toggleAutoBackup()">
+                            Enable automatic backup to Google Sheets
+                        </label>
+                        <small class="small-text">Backs up every hour when internet is available</small>
+                    </div>
                 </div>
 
                 <div class="card">
                     <h2>☁️ Google Sheets Backup</h2>
-                    <p class="small-text" style="margin-bottom: 1rem;">One-way backup to Google Sheets. App is the source of truth.</p>
+                    <p class="small-text" style="margin-bottom: 1rem;">Manual backup to Google Sheets. App is the source of truth.</p>
                     <div class="button-group">
                         <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
                         <button class="btn btn-primary" onclick="backupToSheets()">💾 Backup Now</button>
                     </div>
+                    <div id="backupStatus" style="margin-top: 1rem; padding: 0.8rem; background: #f9f9f9; border-radius: 6px; font-size: 0.9rem; display: none;"></div>
+                </div>
+
+                <div class="card">
+                    <h2>🔒 Data Information</h2>
+                    <p class="small-text" style="margin-bottom: 1rem;">All data is stored locally on your browser.</p>
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="showDataSize()">Show Data Size</button>
+                        <button class="btn btn-secondary" onclick="exportData()">📥 Export Data</button>
+                    </div>
+                    <div id="dataSizeInfo" style="margin-top: 1rem; padding: 0.8rem; background: #f9f9f9; border-radius: 6px; font-size: 0.9rem; display: none;"></div>
                 </div>
             </div>
         </div>
@@ -1248,7 +1304,11 @@
                 created: new Date().toISOString(),
                 staff: { [pin]: { name: 'Admin', role: 'admin', locationId: null } },
                 productions: 0,
-                totalBillable: 0
+                totalBillable: 0,
+                billingSettings: {
+                    vatRate: 0,  // Default 0%, can be changed
+                    lastRateUpdate: new Date().toISOString()
+                }
             };
 
             DB.clientData[code] = {
@@ -1362,6 +1422,29 @@
             displayClients();
             event.target.reset();
             showAlert('Limits updated');
+        }
+
+        function updateClientVAT(event) {
+            event.preventDefault();
+            const code = document.getElementById('updateVATClientSelect').value;
+            const vatRate = parseFloat(document.getElementById('updateVATValue').value);
+
+            if (!code) {
+                showAlert('Select a client', 'error');
+                return;
+            }
+
+            const client = DB.clients[code];
+            if (!client.billingSettings) {
+                client.billingSettings = {};
+            }
+            client.billingSettings.vatRate = vatRate;
+            client.billingSettings.lastRateUpdate = new Date().toISOString();
+
+            saveData();
+            displayClients();
+            event.target.reset();
+            showAlert(`VAT rate updated to ${vatRate.toFixed(2)}% for ${client.name}`);
         }
 
         // ============================================
@@ -1915,13 +1998,45 @@
         // SALES
         // ============================================
 
+        function updateSalePrice() {
+            const data = getClientData();
+            const productId = parseInt(document.getElementById('saleProduct').value);
+            const product = data.products.find(p => p.id === productId);
+            const salePriceInput = document.getElementById('salePrice');
+            const salePriceHint = document.getElementById('salePriceHint');
+            
+            if (product) {
+                salePriceInput.value = product.sellingPrice.toFixed(2);
+                
+                // Check if user is admin
+                const isAdmin = AUTH.role === 'admin' || AUTH.role === 'manager' || AUTH.userType === 'platform';
+                
+                if (isAdmin) {
+                    // Admin can edit
+                    salePriceInput.readOnly = false;
+                    salePriceInput.style.backgroundColor = '#fff';
+                    salePriceHint.textContent = '✓ Edit for discounted volume pricing (Admin)';
+                    salePriceHint.style.color = '#2e7d32';
+                } else {
+                    // Staff cannot edit
+                    salePriceInput.readOnly = true;
+                    salePriceInput.style.backgroundColor = '#f5f5f5';
+                    salePriceInput.style.cursor = 'not-allowed';
+                    salePriceHint.textContent = '🔒 Price is fixed (requires admin approval to change)';
+                    salePriceHint.style.color = '#c62828';
+                }
+            }
+        }
+
         function addSale(event) {
             event.preventDefault();
             const data = getClientData();
             const productId = parseInt(document.getElementById('saleProduct').value);
             const product = data.products.find(p => p.id === productId);
             const qty = parseFloat(document.getElementById('saleQty').value);
+            const salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
             const locationId = document.getElementById('salesLocation').value;
+            const isAdmin = AUTH.role === 'admin' || AUTH.role === 'manager' || AUTH.userType === 'platform';
 
             if (!product) {
                 showAlert('Select a product', 'error');
@@ -1933,8 +2048,18 @@
                 return;
             }
 
+            // Check if price was changed from default
+            const defaultPrice = product.sellingPrice;
+            const priceChanged = Math.abs(salePrice - defaultPrice) > 0.01;
+            
+            // If price changed and user is NOT admin, reject
+            if (priceChanged && !isAdmin) {
+                showAlert('🔒 Price adjustments require admin approval', 'error');
+                return;
+            }
+
             product.stock -= qty;
-            const revenue = product.sellingPrice * qty;
+            const revenue = salePrice * qty;
             let channel = document.getElementById('customChannel').value || document.getElementById('saleChannel').value;
 
             data.sales.push({
@@ -1943,16 +2068,34 @@
                 productId: product.id,
                 product: product.name,
                 quantity: qty,
+                pricePerUnit: salePrice,
+                defaultPrice: defaultPrice,
+                priceChanged: priceChanged,
                 revenue: revenue,
                 channel: channel,
-                locationId: locationId
+                locationId: locationId,
+                approvedBy: isAdmin ? AUTH.staffPin : null
             });
+
+            // Log activity with details about price change
+            let activityMsg = `Sold ${qty} units of ${product.name} at ₦${salePrice}/unit (Total: ₦${revenue.toFixed(2)})`;
+            if (priceChanged) {
+                const discount = ((defaultPrice - salePrice) / defaultPrice * 100).toFixed(1);
+                activityMsg += ` [PRICE ADJUSTED: ₦${defaultPrice} → ₦${salePrice} (-${discount}%) - Approved by Admin]`;
+            }
+            logActivity('sale_recorded', activityMsg);
 
             saveData();
             displaySales();
             updateDashboard();
             event.target.reset();
-            showAlert('Sale recorded!');
+            document.getElementById('salePrice').value = '';
+            
+            if (priceChanged) {
+                showAlert(`✓ Sale recorded with approved discount (₦${defaultPrice} → ₦${salePrice})`);
+            } else {
+                showAlert('Sale recorded!');
+            }
         }
 
         function displaySales() {
@@ -1969,12 +2112,23 @@
             empty.style.display = 'none';
             tbody.innerHTML = data.sales.slice().reverse().map(s => {
                 const location = data.locations.find(l => l.id == s.locationId);
+                const pricePerUnit = s.pricePerUnit || (s.revenue / s.quantity);
+                const defaultPrice = s.defaultPrice || pricePerUnit;
+                const isAdjusted = s.priceChanged && Math.abs(pricePerUnit - defaultPrice) > 0.01;
+                const discountPct = isAdjusted ? ((defaultPrice - pricePerUnit) / defaultPrice * 100).toFixed(1) : 0;
+                
+                let priceDisplay = `₦${pricePerUnit.toFixed(2)}`;
+                if (isAdjusted) {
+                    priceDisplay = `₦${pricePerUnit.toFixed(2)} <small style="color: #2e7d32;">✓ Approved (-${discountPct}%)</small>`;
+                }
+                
                 return `
                     <tr>
                         <td>${s.date}</td>
                         <td>${location ? location.name : 'Unknown'}</td>
                         <td>${s.product}</td>
                         <td>${s.quantity}</td>
+                        <td>${priceDisplay}</td>
                         <td>₦${s.revenue.toFixed(2)}</td>
                         <td>${s.channel}</td>
                     </tr>
@@ -1995,7 +2149,11 @@
             document.getElementById('billingRate').textContent = '₦' + client.rate.toFixed(2);
             
             const totalBillable = productions.reduce((sum, p) => sum + p.billableAmount, 0);
-            document.getElementById('billingTotal').textContent = '₦' + totalBillable.toFixed(2);
+            const vatRate = (client.billingSettings && client.billingSettings.vatRate) || 0;
+            const vatAmount = (totalBillable * vatRate) / 100;
+            const totalWithVAT = totalBillable + vatAmount;
+            
+            document.getElementById('billingTotal').textContent = '₦' + totalWithVAT.toFixed(2);
 
             // Group by month
             const byMonth = {};
@@ -2005,15 +2163,19 @@
                 if (!byMonth[monthKey]) {
                     byMonth[monthKey] = {
                         productions: 0,
-                        materialCost: 0,
-                        laborCost: 0,
-                        billable: 0
+                        subtotal: 0,
+                        vatAmount: 0,
+                        total: 0
                     };
                 }
                 byMonth[monthKey].productions += 1;
-                byMonth[monthKey].materialCost += p.materialsCost;
-                byMonth[monthKey].laborCost += p.laborCost;
-                byMonth[monthKey].billable += p.billableAmount;
+                byMonth[monthKey].subtotal += p.billableAmount;
+            });
+
+            // Calculate VAT for each month
+            Object.keys(byMonth).forEach(month => {
+                byMonth[month].vatAmount = (byMonth[month].subtotal * vatRate) / 100;
+                byMonth[month].total = byMonth[month].subtotal + byMonth[month].vatAmount;
             });
 
             const tbody = document.querySelector('#billingTable tbody');
@@ -2031,9 +2193,9 @@
                     <td>${month}</td>
                     <td>${data.productions}</td>
                     <td>₦${client.rate.toFixed(2)}</td>
-                    <td>₦${data.billable.toFixed(2)}</td>
-                    <td>₦${data.materialCost.toFixed(2)}</td>
-                    <td>₦${data.laborCost.toFixed(2)}</td>
+                    <td>₦${data.subtotal.toFixed(2)}</td>
+                    <td>VAT (${vatRate.toFixed(1)}%): ₦${data.vatAmount.toFixed(2)}</td>
+                    <td>₦${data.total.toFixed(2)}</td>
                     <td>
                         <button class="btn btn-secondary btn-small" onclick="generateInvoiceForMonth('${month}')">Invoice</button>
                     </td>
@@ -2062,9 +2224,27 @@
                 return;
             }
 
+            // Group productions by product
+            const byProduct = {};
+            monthProductions.forEach(p => {
+                if (!byProduct[p.productId]) {
+                    byProduct[p.productId] = {
+                        productName: p.productName,
+                        totalQty: 0,
+                        rate: p.productionRate,
+                        totalValue: 0
+                    };
+                }
+                byProduct[p.productId].totalQty += p.quantity;
+                byProduct[p.productId].totalValue += p.billableAmount;
+            });
+
             const startDate = new Date(year, parseInt(month) - 1, 1);
             const endDate = new Date(year, parseInt(month), 0);
-            const totalAmount = monthProductions.reduce((sum, p) => sum + p.billableAmount, 0);
+            const subtotal = monthProductions.reduce((sum, p) => sum + p.billableAmount, 0);
+            const vatRate = (client.billingSettings && client.billingSettings.vatRate) || 0;
+            const vatAmount = (subtotal * vatRate) / 100;
+            const totalAmount = subtotal + vatAmount;
 
             const invoice = {
                 id: 'INV-' + Date.now(),
@@ -2074,8 +2254,10 @@
                 endDate: endDate.toLocaleDateString(),
                 productions: monthProductions.length,
                 productionRate: client.rate,
-                materialCost: monthProductions.reduce((sum, p) => sum + p.materialsCost, 0),
-                laborCost: monthProductions.reduce((sum, p) => sum + p.laborCost, 0),
+                byProduct: byProduct,
+                subtotal: subtotal,
+                vatRate: vatRate,
+                vatAmount: vatAmount,
                 totalAmount: totalAmount,
                 createdDate: new Date().toISOString(),
                 status: 'pending'
@@ -2116,6 +2298,17 @@
 
         function showInvoice(invoice) {
             const client = DB.clients[AUTH.clientCode];
+            
+            // Build product rows
+            const productRows = Object.entries(invoice.byProduct).map(([productId, product]) => `
+                <tr>
+                    <td style="text-align: left;">${product.productName}</td>
+                    <td style="text-align: right;">${product.totalQty}</td>
+                    <td style="text-align: right;">₦${product.rate.toFixed(2)}</td>
+                    <td style="text-align: right;">₦${product.totalValue.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
             const html = `
                 <div class="invoice-container">
                     <div class="invoice-header">
@@ -2141,30 +2334,32 @@
                     <table class="invoice-table">
                         <thead>
                             <tr>
-                                <th style="text-align: left;">Description</th>
-                                <th style="text-align: right;">Quantity</th>
-                                <th style="text-align: right;">Unit Price (₦)</th>
-                                <th style="text-align: right;">Amount (₦)</th>
+                                <th style="text-align: left;">Product</th>
+                                <th style="text-align: right;">Qty Produced</th>
+                                <th style="text-align: right;">Rate per Unit (₦)</th>
+                                <th style="text-align: right;">Value (₦)</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td style="border-bottom: none;">Production Services</td>
-                                <td style="text-align: right; border-bottom: none;">${invoice.productions}</td>
-                                <td style="text-align: right; border-bottom: none;">₦${invoice.productionRate.toFixed(2)}</td>
-                                <td style="text-align: right; border-bottom: none;">₦${invoice.totalAmount.toFixed(2)}</td>
-                            </tr>
+                            ${productRows}
                         </tbody>
                     </table>
 
-                    <div style="margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 6px;">
-                        <p style="margin-bottom: 0.5rem;"><strong>Breakdown:</strong></p>
-                        <p style="margin: 0.25rem 0;">Material Costs: ₦${invoice.materialCost.toFixed(2)}</p>
-                        <p style="margin: 0.25rem 0;">Labor Costs: ₦${invoice.laborCost.toFixed(2)}</p>
-                    </div>
-
-                    <div class="invoice-total">
-                        <p>TOTAL AMOUNT DUE: ₦${invoice.totalAmount.toFixed(2)}</p>
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <table style="width: 400px; margin-left: auto; border-collapse: collapse;">
+                            <tr style="border-top: 2px solid #ddd;">
+                                <td style="padding: 0.8rem; text-align: left;"><strong>Subtotal:</strong></td>
+                                <td style="padding: 0.8rem; text-align: right;"><strong>₦${invoice.subtotal.toFixed(2)}</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0.8rem; text-align: left;">VAT (${invoice.vatRate.toFixed(1)}%):</td>
+                                <td style="padding: 0.8rem; text-align: right;">₦${invoice.vatAmount.toFixed(2)}</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #0f6e56;">
+                                <td style="padding: 0.8rem; text-align: left;"><strong>TOTAL DUE:</strong></td>
+                                <td style="padding: 0.8rem; text-align: right; font-size: 1.2rem; color: #0f6e56;"><strong>₦${invoice.totalAmount.toFixed(2)}</strong></td>
+                            </tr>
+                        </table>
                     </div>
 
                     <div style="margin-top: 2rem; text-align: center; color: #666; font-size: 0.85rem;">
@@ -2366,11 +2561,148 @@
         }
 
         // ============================================
+        // AUTO-BACKUP & DATA UTILITIES
+        // ============================================
+
+        let autoBackupInterval = null;
+        let lastBackupTime = null;
+
+        function toggleAutoBackup() {
+            const enabled = document.getElementById('autoBackupEnabled').checked;
+            localStorage.setItem('autoBackupEnabled', enabled);
+            
+            if (enabled) {
+                startAutoBackup();
+                showAlert('Auto-backup enabled', 'success');
+            } else {
+                stopAutoBackup();
+                showAlert('Auto-backup disabled', 'warning');
+            }
+        }
+
+        function startAutoBackup() {
+            // Check internet and backup every hour
+            if (autoBackupInterval) clearInterval(autoBackupInterval);
+            
+            autoBackupInterval = setInterval(() => {
+                if (navigator.onLine) {
+                    autoBackupToSheets();
+                }
+            }, 60 * 60 * 1000); // 1 hour in milliseconds
+            
+            updateAutoBackupStatus();
+        }
+
+        function stopAutoBackup() {
+            if (autoBackupInterval) {
+                clearInterval(autoBackupInterval);
+                autoBackupInterval = null;
+            }
+        }
+
+        function autoBackupToSheets() {
+            if (!AUTH.clientCode) return;
+
+            const data = getClientData();
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: 'sync_all',
+                    clientCode: AUTH.clientCode,
+                    data: data
+                })
+            })
+            .then(r => r.json())
+            .then(() => {
+                lastBackupTime = new Date().toLocaleString();
+                localStorage.setItem('lastBackupTime', lastBackupTime);
+                updateAutoBackupStatus();
+                console.log('Auto-backup successful at ' + lastBackupTime);
+            })
+            .catch(err => {
+                console.error('Auto-backup failed:', err);
+                updateAutoBackupStatus();
+            });
+        }
+
+        function updateAutoBackupStatus() {
+            const enabled = localStorage.getItem('autoBackupEnabled') !== 'false';
+            const lastBackup = localStorage.getItem('lastBackupTime') || 'Never';
+            
+            const statusEl = document.getElementById('autoBackupStatus');
+            if (statusEl) {
+                statusEl.textContent = enabled ? '🟢 Enabled (Online)' : '🔴 Disabled';
+                statusEl.style.color = enabled ? '#2e7d32' : '#c62828';
+            }
+            
+            const timeEl = document.getElementById('lastBackupTime');
+            if (timeEl) {
+                timeEl.textContent = lastBackup;
+            }
+        }
+
+        function showDataSize() {
+            const data = JSON.stringify(DB);
+            const sizeInBytes = new Blob([data]).size;
+            const sizeInKB = (sizeInBytes / 1024).toFixed(2);
+            
+            const info = `
+                <p><strong>Data Size:</strong> ${sizeInKB} KB</p>
+                <p><strong>Storage Used:</strong> ${(sizeInBytes / 1024 / 1024).toFixed(3)} MB</p>
+                <p><strong>Entries:</strong> ${Object.keys(DB.clients).length} clients, ${Object.keys(DB.clientData).length} data sets</p>
+                <p class="small-text">Your browser has ~50MB available for this app</p>
+            `;
+            
+            const el = document.getElementById('dataSizeInfo');
+            if (el) {
+                el.innerHTML = info;
+                el.style.display = 'block';
+            }
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(DB, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `becan-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            showAlert('Data exported successfully!', 'success');
+        }
+
+        // ============================================
         // INIT
         // ============================================
 
         window.addEventListener('load', () => {
             loadData();
+            
+            // Initialize auto-backup
+            const autoBackupEnabled = localStorage.getItem('autoBackupEnabled') !== 'false';
+            if (autoBackupEnabled && AUTH.isLoggedIn) {
+                startAutoBackup();
+            }
+            
+            // Update settings display
+            updateAutoBackupStatus();
+            
+            // Listen for online/offline events
+            window.addEventListener('online', () => {
+                console.log('Internet connection restored');
+                if (localStorage.getItem('autoBackupEnabled') !== 'false') {
+                    autoBackupToSheets();
+                }
+            });
+            
+            // Update last saved time periodically
+            setInterval(() => {
+                const now = new Date().toLocaleString();
+                const el = document.getElementById('lastSavedTime');
+                if (el && AUTH.isLoggedIn) {
+                    el.value = now;
+                }
+            }, 1000);
         });
     </script>
 </body>
