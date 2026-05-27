@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Becan Inventory System</title>
+    <title>Becan Inventory System - SaaS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -189,6 +189,12 @@
             border-left: 4px solid #e65100;
         }
 
+        .alert-info {
+            background: #bbdefb;
+            color: #0d47a1;
+            border-left: 4px solid #0d47a1;
+        }
+
         .btn {
             padding: 0.8rem 1.5rem;
             border: none;
@@ -315,30 +321,69 @@
             color: #856404;
         }
 
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
         .badge-danger {
             background: #f8d7da;
             color: #721c24;
         }
 
-        .batch-item {
-            background: #f9f9f9;
-            padding: 0.8rem;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            border-left: 4px solid #0f6e56;
-        }
-
-        .customer-select {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
         .small-text {
             font-size: 0.85rem;
             color: #666;
+        }
+
+        .invoice-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 800px;
+            margin: 1rem auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #0f6e56;
+            padding-bottom: 1rem;
+        }
+
+        .invoice-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .invoice-table {
+            width: 100%;
+            margin: 1.5rem 0;
+        }
+
+        .invoice-table th {
+            background: #0f6e56;
+            color: white;
+        }
+
+        .invoice-total {
+            text-align: right;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0f6e56;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 2px solid #ddd;
+        }
+
+        .location-select {
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -350,19 +395,19 @@
             <p class="small-text" style="margin-bottom: 1.5rem;">For Restaurants & Confectionery Shops</p>
             
             <div class="login-tabs">
-                <button class="login-tab active" onclick="switchLoginTab('admin')">Admin</button>
-                <button class="login-tab" onclick="switchLoginTab('client')">Staff</button>
+                <button class="login-tab active" onclick="switchLoginTab('platform')">Platform</button>
+                <button class="login-tab" onclick="switchLoginTab('client')">Client</button>
             </div>
 
-            <form class="login-form active" id="adminLoginForm" onsubmit="adminLogin(event)">
+            <form class="login-form active" id="platformLoginForm" onsubmit="platformLogin(event)">
                 <div class="form-group">
-                    <label>Master Admin PIN</label>
-                    <input type="password" id="adminPin" placeholder="Default: 1234" required>
+                    <label>Platform Admin PIN</label>
+                    <input type="password" id="platformPin" placeholder="Default: 1234" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Login</button>
             </form>
 
-            <form class="login-form" id="clientLoginForm" onsubmit="staffLogin(event)">
+            <form class="login-form" id="clientLoginForm" onsubmit="clientLogin(event)">
                 <div class="form-group">
                     <label>Business Code</label>
                     <input type="text" id="clientCode" placeholder="e.g., liegecafe" required>
@@ -393,78 +438,73 @@
 
             <div class="tabs">
                 <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
-                <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin')" style="display:none;">Admin</button>
+                <button class="tab-btn" id="platformTabBtn" onclick="switchTab('platform')" style="display:none;">Platform Admin</button>
+                <button class="tab-btn" id="clientMgmtTabBtn" onclick="switchTab('clientMgmt')" style="display:none;">Client Management</button>
+                <button class="tab-btn" id="locationTabBtn" onclick="switchTab('locations')" style="display:none;">Locations</button>
+                <button class="tab-btn" id="staffTabBtn" onclick="switchTab('staff')" style="display:none;">Staff</button>
                 <button class="tab-btn" onclick="switchTab('ingredients')">Raw Materials</button>
                 <button class="tab-btn" onclick="switchTab('products')">Products</button>
                 <button class="tab-btn" onclick="switchTab('production')">Production</button>
                 <button class="tab-btn" onclick="switchTab('sales')">Sales</button>
-                <button class="tab-btn" onclick="switchTab('customers')">Customers</button>
-                <button class="tab-btn" onclick="switchTab('stock')">Stock</button>
-                <button class="tab-btn" onclick="switchTab('activity')">Activity Log</button>
+                <button class="tab-btn" id="billingTabBtn" onclick="switchTab('billing')" style="display:none;">Billing</button>
+                <button class="tab-btn" id="invoiceTabBtn" onclick="switchTab('invoices')" style="display:none;">Invoices</button>
                 <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
             </div>
 
             <!-- DASHBOARD -->
             <div id="dashboard" class="tab-content active">
+                <div id="locationSelectContainer" class="location-select" style="display:none;">
+                    <label>View Location:</label>
+                    <select id="dashboardLocation" onchange="updateDashboard()" style="width: 300px;">
+                        <option value="all">All Locations</option>
+                    </select>
+                </div>
+
                 <div class="card">
                     <h2>📊 Business Summary</h2>
                     <div class="stats">
                         <div class="stat-card">
                             <div class="stat-value" id="totalRawMaterials">0</div>
-                            <div class="stat-label">Raw Materials (Items)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalRawQty">0</div>
-                            <div class="stat-label">Raw Materials (Qty)</div>
+                            <div class="stat-label">Raw Materials</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value" id="totalProducts">0</div>
                             <div class="stat-label">Products</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="totalFinishedQty">0</div>
-                            <div class="stat-label">Finished Goods (Qty)</div>
+                            <div class="stat-value" id="totalProductions">0</div>
+                            <div class="stat-label">Productions</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalBillable">₦0</div>
+                            <div class="stat-label">Billable Amount</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h2>👥 Top 5 Customers</h2>
-                    <table id="topCustomersTable">
+                    <h2>📋 Recent Productions</h2>
+                    <table id="recentProductionsTable">
                         <thead>
                             <tr>
-                                <th>Customer Name</th>
-                                <th>Mobile</th>
-                                <th>Total Spent</th>
-                                <th>Purchases</th>
-                                <th>Last Purchase</th>
+                                <th>Date</th>
+                                <th>Location</th>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Production Cost</th>
+                                <th>Billable (₦)</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
-                    <div id="topCustomersEmpty" class="empty-state">No customers yet</div>
-                </div>
-
-                <div class="card">
-                    <h2>📋 Recent Activity</h2>
-                    <table id="recentActivityTable">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Activity</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                    <div id="recentActivityEmpty" class="empty-state">No recent activity</div>
+                    <div id="recentProductionsEmpty" class="empty-state">No productions yet</div>
                 </div>
             </div>
 
-            <!-- ADMIN TAB -->
-            <div id="admin" class="tab-content">
+            <!-- PLATFORM ADMIN -->
+            <div id="platform" class="tab-content">
                 <div class="card">
-                    <h2>Create New Business</h2>
+                    <h2>Create New Client</h2>
                     <form onsubmit="createClient(event)">
                         <div class="form-row">
                             <div class="form-group">
@@ -472,63 +512,194 @@
                                 <input type="text" id="newClientName" required>
                             </div>
                             <div class="form-group">
-                                <label>Business Code (lowercase, no spaces) *</label>
-                                <input type="text" id="newClientCode" placeholder="e.g., liegecafe" required>
+                                <label>Business Code *</label>
+                                <input type="text" id="newClientCode" placeholder="lowercase, no spaces" required>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Owner Email *</label>
-                                <input type="email" id="newClientEmail" placeholder="owner@example.com" required>
+                                <input type="email" id="newClientEmail" required>
                             </div>
                             <div class="form-group">
-                                <label>Default Staff PIN *</label>
-                                <input type="password" id="newClientPin" placeholder="4-6 digits" required>
+                                <label>Default Admin PIN *</label>
+                                <input type="password" id="newClientPin" required>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Create Business</button>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Production Rate (₦/production) *</label>
+                                <input type="number" id="productionRate" min="0" step="0.01" placeholder="e.g., 500" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Staff Allowed *</label>
+                                <input type="number" id="maxStaff" min="1" placeholder="e.g., 5" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Locations Allowed *</label>
+                            <input type="number" id="maxLocations" min="1" placeholder="e.g., 3" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Client</button>
                     </form>
                 </div>
 
                 <div class="card">
-                    <h2>All Businesses</h2>
+                    <h2>All Clients & Usage</h2>
                     <table id="clientsTable">
                         <thead>
                             <tr>
-                                <th>Business Name</th>
+                                <th>Client Name</th>
                                 <th>Code</th>
-                                <th>Owner Email</th>
+                                <th>Email</th>
+                                <th>Production Rate</th>
+                                <th>Staff (Used/Max)</th>
+                                <th>Locations (Used/Max)</th>
+                                <th>Productions</th>
+                                <th>Total Billable</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="clientsEmpty" class="empty-state">No clients yet</div>
+                </div>
+            </div>
+
+            <!-- CLIENT MANAGEMENT (For Platform Admin to manage client details) -->
+            <div id="clientMgmt" class="tab-content">
+                <div class="card">
+                    <h2>Update Client Production Rate</h2>
+                    <form onsubmit="updateClientRate(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Select Client *</label>
+                                <select id="updateClientSelect" required>
+                                    <option value="">Choose client...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>New Production Rate (₦) *</label>
+                                <input type="number" id="updateRateValue" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Rate</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2>Update Staff/Location Limits</h2>
+                    <form onsubmit="updateClientLimits(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Select Client *</label>
+                                <select id="updateLimitsClientSelect" required>
+                                    <option value="">Choose client...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Staff</label>
+                                <input type="number" id="updateMaxStaff" min="1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Locations</label>
+                            <input type="number" id="updateMaxLocations" min="1">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Limits</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- LOCATIONS (Client Admin) -->
+            <div id="locations" class="tab-content">
+                <div class="card">
+                    <h2>Add New Location</h2>
+                    <p class="small-text">Locations used: <span id="locationsUsedCount">0</span>/<span id="locationsMaxCount">0</span></p>
+                    <form onsubmit="addLocation(event)">
+                        <div class="form-group">
+                            <label>Location Name *</label>
+                            <input type="text" id="locationName" placeholder="e.g., Lagos Branch" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Location</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2>Your Locations</h2>
+                    <table id="locationsTable">
+                        <thead>
+                            <tr>
+                                <th>Location Name</th>
                                 <th>Created</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
-                    <div id="clientsEmpty" class="empty-state">No businesses yet</div>
+                    <div id="locationsEmpty" class="empty-state">No locations yet</div>
+                </div>
+            </div>
+
+            <!-- STAFF MANAGEMENT (Client Admin) -->
+            <div id="staff" class="tab-content">
+                <div class="card">
+                    <h2>Add New Staff</h2>
+                    <p class="small-text">Staff used: <span id="staffUsedCount">0</span>/<span id="staffMaxCount">0</span></p>
+                    <form onsubmit="addStaff(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Staff Name *</label>
+                                <input type="text" id="staffName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>PIN *</label>
+                                <input type="password" id="staffNewPin" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Role *</label>
+                                <select id="staffRole" required>
+                                    <option value="admin">Admin (All Locations)</option>
+                                    <option value="manager">Manager (All Locations)</option>
+                                    <option value="staff">Staff (Assigned Location)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Assign Location (for Staff role)</label>
+                                <select id="staffLocation">
+                                    <option value="">All Locations</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Staff</button>
+                    </form>
                 </div>
 
                 <div class="card">
-                    <h2>📋 Write-off Recommendations</h2>
-                    <p class="small-text" style="margin-bottom: 1rem;">Items exceeding their shelf life</p>
-                    <table id="writeoffTable">
+                    <h2>Staff List</h2>
+                    <table id="staffTable">
                         <thead>
                             <tr>
-                                <th>Material</th>
-                                <th>Batch ID</th>
-                                <th>Age (Days)</th>
-                                <th>Shelf Life</th>
-                                <th>Qty</th>
-                                <th>Action</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Assigned Location</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
-                    <div id="writeoffEmpty" class="empty-state">No write-offs recommended</div>
+                    <div id="staffEmpty" class="empty-state">No additional staff yet</div>
                 </div>
             </div>
 
             <!-- RAW MATERIALS -->
             <div id="ingredients" class="tab-content">
+                <div id="ingredientLocationContainer" class="location-select" style="display:none;">
+                    <label>Materials are shared across all locations</label>
+                </div>
+
                 <div class="card">
                     <h2>Add Raw Material</h2>
                     <form onsubmit="addIngredient(event)">
@@ -555,7 +726,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Shelf Life (Days) *</label>
-                                <input type="number" id="ingredientShelfLife" min="1" placeholder="e.g., 30" required>
+                                <input type="number" id="ingredientShelfLife" min="1" required>
                             </div>
                         </div>
                         <div class="form-group">
@@ -624,6 +795,13 @@
 
             <!-- PRODUCTION -->
             <div id="production" class="tab-content">
+                <div id="productionLocationContainer" class="location-select" style="display:none;">
+                    <label>Production Location:</label>
+                    <select id="productionLocation" style="width: 300px;">
+                        <option value="">Select location...</option>
+                    </select>
+                </div>
+
                 <div class="card">
                     <h2>Log Production Run</h2>
                     <form onsubmit="addProduction(event)">
@@ -642,18 +820,17 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Labor - Hours</label>
-                                <input type="number" id="laborHours" min="0" step="0.5" placeholder="e.g., 2.5">
+                                <input type="number" id="laborHours" min="0" step="0.5">
                             </div>
                             <div class="form-group">
                                 <label>Labor - Rate per Hour (₦)</label>
-                                <input type="number" id="laborRate" min="0" step="0.01" placeholder="e.g., 5000">
+                                <input type="number" id="laborRate" min="0" step="0.01">
                             </div>
                         </div>
                         <div class="form-group">
                             <label>Notes</label>
                             <textarea id="productionNotes" rows="3"></textarea>
                         </div>
-                        <div id="ingredientCheck"></div>
                         <button type="submit" class="btn btn-primary">Start Production</button>
                     </form>
                 </div>
@@ -664,53 +841,36 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
+                                <th>Location</th>
                                 <th>Product</th>
                                 <th>Qty</th>
                                 <th>Material Cost</th>
                                 <th>Labor Cost</th>
+                                <th>Billable (₦)</th>
                                 <th>Total Cost</th>
-                                <th>Cost/Unit</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
-                    <div id="productionEmpty" class="empty-state">No production runs yet</div>
+                    <div id="productionEmpty" class="empty-state">No productions yet</div>
                 </div>
             </div>
 
             <!-- SALES -->
             <div id="sales" class="tab-content">
+                <div id="salesLocationContainer" class="location-select" style="display:none;">
+                    <label>Sales Location:</label>
+                    <select id="salesLocation" style="width: 300px;">
+                        <option value="">Select location...</option>
+                    </select>
+                </div>
+
                 <div class="card">
                     <h2>Log Sale</h2>
                     <form onsubmit="addSale(event)">
-                        <div class="customer-select">
-                            <div class="form-group">
-                                <label>Select Existing Customer</label>
-                                <select id="existingCustomer">
-                                    <option value="">-- Or Create New --</option>
-                                </select>
-                            </div>
-                            <div style="border-left: 2px solid #ddd; padding-left: 1rem;">
-                                <p style="font-weight: 600; margin-bottom: 0.5rem;">OR Create New Customer</p>
-                                <div class="form-group">
-                                    <label>Customer Name *</label>
-                                    <input type="text" id="newCustomerName">
-                                </div>
-                            </div>
-                        </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Mobile</label>
-                                <input type="tel" id="customerMobile">
-                            </div>
-                            <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" id="customerEmail">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Finished Product *</label>
+                                <label>Product *</label>
                                 <select id="saleProduct" required>
                                     <option value="">Select product...</option>
                                 </select>
@@ -720,13 +880,19 @@
                                 <input type="number" id="saleQty" min="1" step="0.01" required>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Channel</label>
-                            <select id="saleChannel">
-                                <option>Direct</option>
-                                <option>ORDA</option>
-                                <option>Walk-in</option>
-                            </select>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Channel</label>
+                                <select id="saleChannel">
+                                    <option value="Direct">Direct</option>
+                                    <option value="ORDA">ORDA</option>
+                                    <option value="Walk-in">Walk-in</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Custom Channel (optional)</label>
+                                <input type="text" id="customChannel" placeholder="e.g., WhatsApp">
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Record Sale</button>
                     </form>
@@ -738,7 +904,7 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Customer</th>
+                                <th>Location</th>
                                 <th>Product</th>
                                 <th>Qty</th>
                                 <th>Revenue</th>
@@ -751,102 +917,80 @@
                 </div>
             </div>
 
-            <!-- CUSTOMERS -->
-            <div id="customers" class="tab-content">
+            <!-- BILLING (Client Admin & Platform Admin) -->
+            <div id="billing" class="tab-content">
                 <div class="card">
-                    <h2>Customer Management</h2>
-                    <table id="customersTable">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Mobile</th>
-                                <th>Email</th>
-                                <th>Total Purchases</th>
-                                <th>Total Spent</th>
-                                <th>Last Purchase</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                    <div id="customersEmpty" class="empty-state">No customers yet</div>
-                </div>
-            </div>
-
-            <!-- STOCK LEVELS -->
-            <div id="stock" class="tab-content">
-                <div class="card">
-                    <h2>Raw Materials Stock</h2>
-                    <table id="stockTable">
-                        <thead>
-                            <tr>
-                                <th>Material</th>
-                                <th>Total Qty</th>
-                                <th>Unit</th>
-                                <th>Cost/Unit</th>
-                                <th>Total Value</th>
-                                <th>Batches</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-
-                <div class="card">
-                    <h2>Finished Products Stock</h2>
-                    <table id="finishedStockTable">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Qty</th>
-                                <th>Cost/Unit</th>
-                                <th>Selling Price</th>
-                                <th>Profit/Unit</th>
-                                <th>Total Value</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ACTIVITY LOG -->
-            <div id="activity" class="tab-content">
-                <div class="card">
-                    <h2>📋 Complete Activity Log</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Filter by Activity Type</label>
-                            <select id="activityFilter">
-                                <option value="">All Activities</option>
-                                <option value="ingredient_added">Ingredient Added</option>
-                                <option value="product_created">Product Created</option>
-                                <option value="production_logged">Production Logged</option>
-                                <option value="sale_logged">Sale Logged</option>
-                                <option value="batch_writeoff">Batch Write-off</option>
-                            </select>
+                    <h2>💰 Billing Summary</h2>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="billingProductions">0</div>
+                            <div class="stat-label">Total Productions</div>
                         </div>
-                        <div class="form-group">
-                            <label>&nbsp;</label>
-                            <button class="btn btn-primary" onclick="applyActivityFilter()">Filter</button>
+                        <div class="stat-card">
+                            <div class="stat-value" id="billingRate">₦0</div>
+                            <div class="stat-label">Rate per Production</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="billingTotal">₦0</div>
+                            <div class="stat-label">Total Billable</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <table id="activityTable">
+                    <h2>Production Billing Breakdown</h2>
+                    <table id="billingTable">
                         <thead>
                             <tr>
-                                <th>Activity ID</th>
-                                <th>Timestamp</th>
-                                <th>Staff Member</th>
-                                <th>Activity Type</th>
-                                <th>Details</th>
+                                <th>Month</th>
+                                <th>Productions</th>
+                                <th>Rate per Production</th>
+                                <th>Total Billable</th>
+                                <th>Material Cost</th>
+                                <th>Labor Cost</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
-                    <div id="activityEmpty" class="empty-state">No activities yet</div>
+                    <div id="billingEmpty" class="empty-state">No billings yet</div>
+                </div>
+            </div>
+
+            <!-- INVOICES -->
+            <div id="invoices" class="tab-content">
+                <div class="card">
+                    <h2>📄 Generate Monthly Invoice</h2>
+                    <form onsubmit="generateInvoice(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Select Month/Year *</label>
+                                <input type="month" id="invoiceMonth" required>
+                            </div>
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button type="submit" class="btn btn-primary">Generate Invoice</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2>Invoice History</h2>
+                    <table id="invoicesTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date Range</th>
+                                <th>Productions</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="invoicesEmpty" class="empty-state">No invoices yet</div>
                 </div>
             </div>
 
@@ -855,8 +999,8 @@
                 <div class="card">
                     <h2>Settings</h2>
                     <div class="form-group">
-                        <label>User Role</label>
-                        <input type="text" id="userRole" disabled>
+                        <label>User Type</label>
+                        <input type="text" id="userType" disabled>
                     </div>
                     <div class="form-group">
                         <label>Business Code</label>
@@ -896,7 +1040,9 @@
             isLoggedIn: false,
             userType: null,
             clientCode: null,
-            role: null
+            role: null,
+            staffPin: null,
+            selectedLocation: null
         };
 
         const DB = {
@@ -913,7 +1059,7 @@
         // ============================================
 
         function loadData() {
-            const stored = localStorage.getItem('becanInventoryData');
+            const stored = localStorage.getItem('becanSaaSData');
             if (stored) {
                 try {
                     Object.assign(DB, JSON.parse(stored));
@@ -924,34 +1070,7 @@
         }
 
         function saveData() {
-            localStorage.setItem('becanInventoryData', JSON.stringify(DB));
-        }
-
-        // ============================================
-        // ACTIVITY LOGGING
-        // ============================================
-
-        function generateActivityId() {
-            const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
-            const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-            return `ACT-${timestamp}-${random}`;
-        }
-
-        function logActivity(type, staffName, details) {
-            const data = getClientData();
-            if (!data.activities) {
-                data.activities = [];
-            }
-
-            data.activities.push({
-                id: generateActivityId(),
-                timestamp: new Date().toISOString(),
-                type: type,
-                staffName: staffName || 'Unknown',
-                details: details
-            });
-
-            saveData();
+            localStorage.setItem('becanSaaSData', JSON.stringify(DB));
         }
 
         // ============================================
@@ -965,9 +1084,9 @@
             event.target.classList.add('active');
         }
 
-        function adminLogin(event) {
+        function platformLogin(event) {
             event.preventDefault();
-            const pin = document.getElementById('adminPin').value;
+            const pin = document.getElementById('platformPin').value;
 
             if (pin !== MASTER_PIN) {
                 showLoginError('Invalid PIN');
@@ -975,11 +1094,11 @@
             }
 
             AUTH.isLoggedIn = true;
-            AUTH.userType = 'admin';
+            AUTH.userType = 'platform';
             showApp();
         }
 
-        function staffLogin(event) {
+        function clientLogin(event) {
             event.preventDefault();
             const clientCode = document.getElementById('clientCode').value.toLowerCase();
             const pin = document.getElementById('staffPin').value;
@@ -990,16 +1109,19 @@
             }
 
             const client = DB.clients[clientCode];
-            if (!client.staff[pin]) {
+            const staffMember = client.staff[pin];
+
+            if (!staffMember) {
                 showLoginError('Invalid PIN');
                 return;
             }
 
-            const staffMember = client.staff[pin];
             AUTH.isLoggedIn = true;
-            AUTH.userType = 'staff';
+            AUTH.userType = 'client';
             AUTH.clientCode = clientCode;
             AUTH.role = staffMember.role;
+            AUTH.staffPin = pin;
+            AUTH.selectedLocation = staffMember.locationId || null;
 
             showApp();
             loadClientData();
@@ -1016,21 +1138,36 @@
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             updateUserInfo();
-
-            if (AUTH.userType === 'admin') {
-                document.getElementById('adminTabBtn').style.display = 'inline-block';
-                displayClientsTable();
-                displayWriteoffRecommendations();
-            }
+            setupUI();
         }
 
         function updateUserInfo() {
             const info = document.getElementById('userInfo');
-            if (AUTH.userType === 'admin') {
-                info.textContent = 'Master Admin';
+            if (AUTH.userType === 'platform') {
+                info.textContent = 'Platform Admin';
             } else {
                 const client = DB.clients[AUTH.clientCode];
                 info.textContent = `${client.name} - ${AUTH.role.toUpperCase()}`;
+            }
+        }
+
+        function setupUI() {
+            if (AUTH.userType === 'platform') {
+                document.getElementById('platformTabBtn').style.display = 'inline-block';
+                document.getElementById('clientMgmtTabBtn').style.display = 'inline-block';
+                displayClients();
+            } else {
+                document.getElementById('locationTabBtn').style.display = 'inline-block';
+                document.getElementById('staffTabBtn').style.display = 'inline-block';
+                document.getElementById('billingTabBtn').style.display = 'inline-block';
+                document.getElementById('invoiceTabBtn').style.display = 'inline-block';
+                
+                if (['admin', 'manager'].includes(AUTH.role)) {
+                    document.getElementById('locationSelectContainer').style.display = 'block';
+                    document.getElementById('productionLocationContainer').style.display = 'block';
+                    document.getElementById('salesLocationContainer').style.display = 'block';
+                    populateLocationSelects();
+                }
             }
         }
 
@@ -1049,15 +1186,18 @@
         // ============================================
 
         function loadClientData() {
-            if (!DB.clientData[AUTH.clientCode]) {
-                DB.clientData[AUTH.clientCode] = {
+            const code = AUTH.clientCode;
+            if (!DB.clientData[code]) {
+                DB.clientData[code] = {
                     ingredients: [],
                     products: [],
                     production: [],
                     sales: [],
-                    customers: [],
-                    activities: []
+                    locations: [{id: Date.now(), name: 'Head Office', created: new Date().toISOString()}],
+                    activities: [],
+                    invoices: []
                 };
+                saveData();
             }
             updateAllDisplays();
         }
@@ -1068,13 +1208,310 @@
                 products: [],
                 production: [],
                 sales: [],
-                customers: [],
-                activities: []
+                locations: [],
+                activities: [],
+                invoices: []
             };
         }
 
         // ============================================
-        // RAW MATERIALS (INGREDIENTS) WITH BATCHES
+        // PLATFORM ADMIN - CLIENT MANAGEMENT
+        // ============================================
+
+        function createClient(event) {
+            event.preventDefault();
+            const name = document.getElementById('newClientName').value;
+            const code = document.getElementById('newClientCode').value.toLowerCase();
+            const email = document.getElementById('newClientEmail').value;
+            const pin = document.getElementById('newClientPin').value;
+            const rate = parseFloat(document.getElementById('productionRate').value);
+            const maxStaff = parseInt(document.getElementById('maxStaff').value);
+            const maxLocations = parseInt(document.getElementById('maxLocations').value);
+
+            if (DB.clients[code]) {
+                showAlert('Business code already exists', 'error');
+                return;
+            }
+
+            DB.clients[code] = {
+                name, code, email, rate,
+                maxStaff, maxLocations,
+                created: new Date().toISOString(),
+                staff: { [pin]: { name: 'Admin', role: 'admin', locationId: null } },
+                productions: 0,
+                totalBillable: 0
+            };
+
+            DB.clientData[code] = {
+                ingredients: [],
+                products: [],
+                production: [],
+                sales: [],
+                locations: [{id: Date.now(), name: 'Head Office', created: new Date().toISOString()}],
+                activities: [],
+                invoices: []
+            };
+
+            saveData();
+            sendWelcomeEmail(name, code, pin, email);
+            displayClients();
+            event.target.reset();
+            showAlert('Client created! Welcome email sent.');
+        }
+
+        function displayClients() {
+            const tbody = document.querySelector('#clientsTable tbody');
+            const empty = document.getElementById('clientsEmpty');
+            const clients = Object.values(DB.clients);
+
+            if (clients.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = clients.map(client => {
+                const data = DB.clientData[client.code];
+                const usedStaff = Object.keys(client.staff).length - 1; // Exclude admin
+                const usedLocations = data ? data.locations.length : 1;
+                const productions = data ? data.production.length : 0;
+                const billable = productions * client.rate;
+
+                return `
+                    <tr>
+                        <td>${client.name}</td>
+                        <td><code>${client.code}</code></td>
+                        <td>${client.email}</td>
+                        <td>₦${client.rate.toFixed(2)}</td>
+                        <td>${usedStaff}/${client.maxStaff}</td>
+                        <td>${usedLocations}/${client.maxLocations}</td>
+                        <td>${productions}</td>
+                        <td>₦${billable.toFixed(2)}</td>
+                        <td>
+                            <button class="btn btn-danger btn-small" onclick="deleteClient('${client.code}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Populate client dropdowns
+            populateClientSelects();
+        }
+
+        function deleteClient(code) {
+            if (confirm('Delete this client and all data?')) {
+                delete DB.clients[code];
+                delete DB.clientData[code];
+                saveData();
+                displayClients();
+                showAlert('Client deleted');
+            }
+        }
+
+        function populateClientSelects() {
+            const options = '<option value="">Choose client...</option>' +
+                Object.values(DB.clients).map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+            document.getElementById('updateClientSelect').innerHTML = options;
+            document.getElementById('updateLimitsClientSelect').innerHTML = options;
+        }
+
+        function updateClientRate(event) {
+            event.preventDefault();
+            const code = document.getElementById('updateClientSelect').value;
+            const rate = parseFloat(document.getElementById('updateRateValue').value);
+
+            if (!code) {
+                showAlert('Select a client', 'error');
+                return;
+            }
+
+            const client = DB.clients[code];
+            client.rate = rate;
+            saveData();
+            displayClients();
+            event.target.reset();
+            showAlert(`Rate updated to ₦${rate.toFixed(2)}/production`);
+        }
+
+        function updateClientLimits(event) {
+            event.preventDefault();
+            const code = document.getElementById('updateLimitsClientSelect').value;
+            const maxStaff = document.getElementById('updateMaxStaff').value;
+            const maxLocations = document.getElementById('updateMaxLocations').value;
+
+            if (!code) {
+                showAlert('Select a client', 'error');
+                return;
+            }
+
+            const client = DB.clients[code];
+            if (maxStaff) client.maxStaff = parseInt(maxStaff);
+            if (maxLocations) client.maxLocations = parseInt(maxLocations);
+
+            saveData();
+            displayClients();
+            event.target.reset();
+            showAlert('Limits updated');
+        }
+
+        // ============================================
+        // CLIENT ADMIN - LOCATION MANAGEMENT
+        // ============================================
+
+        function addLocation(event) {
+            event.preventDefault();
+            const data = getClientData();
+            const client = DB.clients[AUTH.clientCode];
+
+            if (data.locations.length >= client.maxLocations) {
+                showAlert(`Location limit reached (${client.maxLocations})`, 'error');
+                return;
+            }
+
+            data.locations.push({
+                id: Date.now(),
+                name: document.getElementById('locationName').value,
+                created: new Date().toISOString()
+            });
+
+            saveData();
+            displayLocations();
+            populateLocationSelects();
+            event.target.reset();
+            showAlert('Location added!');
+        }
+
+        function displayLocations() {
+            const data = getClientData();
+            const client = DB.clients[AUTH.clientCode];
+            const tbody = document.querySelector('#locationsTable tbody');
+            const empty = document.getElementById('locationsEmpty');
+
+            document.getElementById('locationsUsedCount').textContent = data.locations.length;
+            document.getElementById('locationsMaxCount').textContent = client.maxLocations;
+
+            if (data.locations.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = data.locations.map(loc => `
+                <tr>
+                    <td>${loc.name}</td>
+                    <td>${new Date(loc.created).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-danger btn-small" onclick="deleteLocation(${loc.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteLocation(id) {
+            if (confirm('Delete this location?')) {
+                const data = getClientData();
+                data.locations = data.locations.filter(l => l.id !== id);
+                saveData();
+                displayLocations();
+                populateLocationSelects();
+                showAlert('Location deleted');
+            }
+        }
+
+        // ============================================
+        // CLIENT ADMIN - STAFF MANAGEMENT
+        // ============================================
+
+        function addStaff(event) {
+            event.preventDefault();
+            const client = DB.clients[AUTH.clientCode];
+            const data = getClientData();
+            const pin = document.getElementById('staffNewPin').value;
+            const role = document.getElementById('staffRole').value;
+            const locationId = role === 'staff' ? document.getElementById('staffLocation').value : null;
+
+            const usedStaff = Object.keys(client.staff).length;
+            if (usedStaff >= client.maxStaff) {
+                showAlert(`Staff limit reached (${client.maxStaff})`, 'error');
+                return;
+            }
+
+            if (client.staff[pin]) {
+                showAlert('PIN already in use', 'error');
+                return;
+            }
+
+            client.staff[pin] = {
+                name: document.getElementById('staffName').value,
+                role: role,
+                locationId: locationId || null
+            };
+
+            saveData();
+            displayStaff();
+            event.target.reset();
+            showAlert('Staff added!');
+        }
+
+        function displayStaff() {
+            const client = DB.clients[AUTH.clientCode];
+            const data = getClientData();
+            const tbody = document.querySelector('#staffTable tbody');
+            const empty = document.getElementById('staffEmpty');
+
+            const staff = Object.values(client.staff).filter(s => s.name !== 'Admin');
+
+            document.getElementById('staffUsedCount').textContent = staff.length;
+            document.getElementById('staffMaxCount').textContent = client.maxStaff;
+
+            if (staff.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = staff.map((s, idx) => {
+                const location = s.locationId ? data.locations.find(l => l.id == s.locationId)?.name : 'All Locations';
+                return `
+                    <tr>
+                        <td>${s.name}</td>
+                        <td>${s.role}</td>
+                        <td>${location || 'All Locations'}</td>
+                        <td>
+                            <button class="btn btn-danger btn-small" onclick="deleteStaff(${idx})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function deleteStaff(idx) {
+            if (confirm('Delete this staff?')) {
+                const client = DB.clients[AUTH.clientCode];
+                const keys = Object.keys(client.staff);
+                const staffKey = keys[idx + 1]; // +1 because admin is first
+                delete client.staff[staffKey];
+                saveData();
+                displayStaff();
+                showAlert('Staff deleted');
+            }
+        }
+
+        function populateLocationSelects() {
+            const data = getClientData();
+            const options = data.locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+            
+            document.getElementById('staffLocation').innerHTML = '<option value="">All Locations</option>' + options;
+            document.getElementById('productionLocation').innerHTML = options;
+            document.getElementById('salesLocation').innerHTML = options;
+            document.getElementById('dashboardLocation').innerHTML = '<option value="all">All Locations</option>' + options;
+        }
+
+        // ============================================
+        // INGREDIENTS (SHARED ACROSS LOCATIONS)
         // ============================================
 
         function addIngredient(event) {
@@ -1099,17 +1536,9 @@
             };
 
             data.ingredients.push(ingredient);
-
-            logActivity(
-                'ingredient_added',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Added ${ingredient.name} - ${qty} ${ingredient.unit}`
-            );
-
             saveData();
             displayIngredients();
             populateRecipeSelects();
-            populateProductionSelect();
             event.target.reset();
             showAlert('Raw material added!');
         }
@@ -1136,23 +1565,6 @@
                     <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
                         <p style="font-weight: 600; margin-bottom: 0.5rem;">Total Stock: ${ing.totalStock} ${ing.unit}</p>
                         <p class="small-text" style="margin-bottom: 0.5rem;">Total Value: ₦${(ing.totalStock * ing.costPerUnit).toFixed(2)}</p>
-                        
-                        <p style="font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.5rem;">Batches:</p>
-                        ${ing.batches.map(batch => {
-                            const daysOld = Math.floor((new Date() - new Date(batch.dateAdded)) / (1000 * 60 * 60 * 24));
-                            const daysRemaining = ing.shelfLifeDays - daysOld;
-                            const isOld = daysRemaining <= 0;
-                            const badge = isOld ? '<span class="badge badge-danger">EXPIRED</span>' : daysRemaining <= 5 ? '<span class="badge badge-warning">EXPIRING SOON</span>' : '';
-                            
-                            return `
-                                <div class="batch-item">
-                                    <div style="display: flex; justify-content: space-between;">
-                                        <span>${batch.id} | ${batch.qty} ${ing.unit} | ₦${batch.costPerUnit} each | Age: ${daysOld} days ${badge}</span>
-                                        ${batch.status === 'active' ? `<button class="btn btn-danger btn-small" onclick="writeoffBatch(${ing.id}, '${batch.id}')">Write-off</button>` : '<span style="color: #999;">Written off</span>'}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
                     </div>
                 </div>
             `).join('');
@@ -1164,13 +1576,6 @@
             
             if (confirm('Delete this material?')) {
                 data.ingredients = data.ingredients.filter(i => i.id !== id);
-                
-                logActivity(
-                    'ingredient_deleted',
-                    AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                    `Deleted ${ingredient.name}`
-                );
-                
                 saveData();
                 displayIngredients();
                 populateRecipeSelects();
@@ -1178,29 +1583,8 @@
             }
         }
 
-        function writeoffBatch(ingredientId, batchId) {
-            if (!confirm('Write off this batch?')) return;
-
-            const data = getClientData();
-            const ingredient = data.ingredients.find(i => i.id === ingredientId);
-            const batch = ingredient.batches.find(b => b.id === batchId);
-
-            batch.status = 'written_off';
-            ingredient.totalStock -= batch.qty;
-
-            logActivity(
-                'batch_writeoff',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Wrote off batch ${batchId} of ${ingredient.name} (${batch.qty} ${ingredient.unit})`
-            );
-
-            saveData();
-            displayIngredients();
-            showAlert('Batch written off');
-        }
-
         // ============================================
-        // PRODUCTS WITH COST & PROFIT CALCULATION
+        // PRODUCTS
         // ============================================
 
         function addRecipeItem() {
@@ -1241,8 +1625,8 @@
                 const itemCost = item.qty * item.costPerUnit;
                 totalCost += itemCost;
                 return `
-                    <div class="batch-item">
-                        <span>${item.itemName} - ${item.qty} (₦${item.costPerUnit}/unit = ₦${itemCost.toFixed(2)}) ${totalCost ? '' : ''}</span>
+                    <div style="background: #f9f9f9; padding: 0.8rem; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                        <span>${item.itemName} - ${item.qty} (₦${item.costPerUnit}/unit = ₦${itemCost.toFixed(2)})</span>
                         <button type="button" class="btn btn-danger btn-small" onclick="removeRecipeItem(${idx})">Remove</button>
                     </div>
                 `;
@@ -1261,7 +1645,6 @@
             const data = getClientData();
             const price = parseFloat(document.getElementById('finishedPrice').value) || 0;
 
-            // Calculate recipe cost
             let recipeCost = 0;
             currentRecipe.finished.forEach(item => {
                 recipeCost += item.qty * item.costPerUnit;
@@ -1280,13 +1663,6 @@
             };
 
             data.products.push(product);
-
-            logActivity(
-                'product_created',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Created product: ${product.name} - ₦${price.toFixed(2)}`
-            );
-
             saveData();
             displayProducts();
             populateRecipeSelects();
@@ -1300,7 +1676,6 @@
 
         function displayProducts() {
             const data = getClientData();
-
             const tbody = document.querySelector('#productsTable tbody');
             const empty = document.getElementById('productsEmpty');
             const products = data.products.filter(p => p.type === 'finished');
@@ -1339,27 +1714,28 @@
         }
 
         // ============================================
-        // PRODUCTION WITH LABOR & FIFO
+        // PRODUCTION WITH AUTO-BILLING
         // ============================================
 
         function addProduction(event) {
             event.preventDefault();
             const data = getClientData();
+            const client = DB.clients[AUTH.clientCode];
             const productId = parseInt(document.getElementById('productToProduce').value);
             const product = data.products.find(p => p.id === productId);
             const qty = parseFloat(document.getElementById('productionQty').value);
             const laborHours = parseFloat(document.getElementById('laborHours').value) || 0;
             const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
             const laborCost = laborHours * laborRate;
+            const locationId = document.getElementById('productionLocation').value;
 
             if (!product) {
                 showAlert('Select a product', 'error');
                 return;
             }
 
-            // FIFO: Deduct from oldest batches first
+            // FIFO: Deduct from oldest batches
             let materialsCost = 0;
-            const ingredientsUsed = [];
 
             for (let recipeItem of product.recipe) {
                 const ingredient = data.ingredients.find(i => i.id == recipeItem.itemId);
@@ -1371,7 +1747,6 @@
                     return;
                 }
 
-                // FIFO: Take from oldest active batches first
                 const activeBatches = ingredient.batches.filter(b => b.status === 'active').sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
 
                 for (let batch of activeBatches) {
@@ -1382,13 +1757,6 @@
                     materialsCost += batchCost;
                     batch.qty -= batchQtyUsed;
                     remainingNeeded -= batchQtyUsed;
-
-                    ingredientsUsed.push({
-                        name: ingredient.name,
-                        qty: batchQtyUsed,
-                        cost: batchCost,
-                        batchId: batch.id
-                    });
                 }
 
                 ingredient.totalStock -= needed;
@@ -1398,12 +1766,14 @@
 
             const totalCost = materialsCost + laborCost;
             const costPerUnit = qty > 0 ? totalCost / qty : 0;
+            const billableAmount = qty * client.rate;
 
             data.production.push({
                 id: Date.now(),
                 date: new Date().toLocaleString(),
                 productId: product.id,
                 productName: product.name,
+                locationId: locationId,
                 quantity: qty,
                 materialsCost: materialsCost,
                 laborHours: laborHours,
@@ -1411,23 +1781,20 @@
                 laborCost: laborCost,
                 totalCost: totalCost,
                 costPerUnit: costPerUnit,
-                ingredientsUsed: ingredientsUsed,
+                productionRate: client.rate,
+                billableAmount: billableAmount,
                 notes: document.getElementById('productionNotes').value
             });
 
-            logActivity(
-                'production_logged',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Produced ${qty} units of ${product.name} - Cost: ₦${totalCost.toFixed(2)}`
-            );
+            client.productions = (client.productions || 0) + 1;
+            client.totalBillable = (client.totalBillable || 0) + billableAmount;
 
             saveData();
             displayProduction();
             displayIngredients();
-            displayStockLevels();
             updateDashboard();
             event.target.reset();
-            showAlert('Production run recorded!');
+            showAlert(`Production logged! Billable: ₦${billableAmount.toFixed(2)}`);
         }
 
         function displayProduction() {
@@ -1442,21 +1809,25 @@
             }
 
             empty.style.display = 'none';
-            tbody.innerHTML = data.production.slice().reverse().map(p => `
-                <tr>
-                    <td>${p.date}</td>
-                    <td>${p.productName}</td>
-                    <td>${p.quantity}</td>
-                    <td>₦${p.materialsCost.toFixed(2)}</td>
-                    <td>₦${p.laborCost.toFixed(2)}</td>
-                    <td>₦${p.totalCost.toFixed(2)}</td>
-                    <td>₦${p.costPerUnit.toFixed(2)}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = data.production.slice().reverse().map(p => {
+                const location = data.locations.find(l => l.id == p.locationId);
+                return `
+                    <tr>
+                        <td>${p.date}</td>
+                        <td>${location ? location.name : 'Unknown'}</td>
+                        <td>${p.productName}</td>
+                        <td>${p.quantity}</td>
+                        <td>₦${p.materialsCost.toFixed(2)}</td>
+                        <td>₦${p.laborCost.toFixed(2)}</td>
+                        <td>₦${p.billableAmount.toFixed(2)}</td>
+                        <td>₦${p.totalCost.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // ============================================
-        // SALES WITH CUSTOMER MANAGEMENT
+        // SALES
         // ============================================
 
         function addSale(event) {
@@ -1465,6 +1836,7 @@
             const productId = parseInt(document.getElementById('saleProduct').value);
             const product = data.products.find(p => p.id === productId);
             const qty = parseFloat(document.getElementById('saleQty').value);
+            const locationId = document.getElementById('salesLocation').value;
 
             if (!product) {
                 showAlert('Select a product', 'error');
@@ -1476,75 +1848,25 @@
                 return;
             }
 
-            // Get or create customer
-            const existingCustomerId = document.getElementById('existingCustomer').value;
-            const newCustomerName = document.getElementById('newCustomerName').value;
-
-            let customerId, customer;
-
-            if (existingCustomerId) {
-                customerId = existingCustomerId;
-                customer = data.customers.find(c => c.id == customerId);
-            } else if (newCustomerName) {
-                customerId = 'CUST-' + Date.now();
-                customer = {
-                    id: customerId,
-                    name: newCustomerName,
-                    mobile: document.getElementById('customerMobile').value || '',
-                    email: document.getElementById('customerEmail').value || '',
-                    totalPurchases: 0,
-                    totalSpent: 0,
-                    lastPurchaseDate: null,
-                    purchaseHistory: []
-                };
-                data.customers.push(customer);
-            } else {
-                showAlert('Please select or create a customer', 'error');
-                return;
-            }
-
             product.stock -= qty;
             const revenue = product.sellingPrice * qty;
+            let channel = document.getElementById('customChannel').value || document.getElementById('saleChannel').value;
 
-            customer.totalPurchases += 1;
-            customer.totalSpent += revenue;
-            customer.lastPurchaseDate = new Date().toISOString();
-
-            const saleRecord = {
+            data.sales.push({
                 id: Date.now(),
                 date: new Date().toLocaleString(),
                 productId: product.id,
                 product: product.name,
                 quantity: qty,
                 revenue: revenue,
-                channel: document.getElementById('saleChannel').value,
-                customerId: customerId,
-                customerName: customer.name
-            };
-
-            customer.purchaseHistory.push({
-                saleId: saleRecord.id,
-                date: new Date().toLocaleString(),
-                product: product.name,
-                qty: qty,
-                amount: revenue
+                channel: channel,
+                locationId: locationId
             });
-
-            data.sales.push(saleRecord);
-
-            logActivity(
-                'sale_logged',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Sold ${qty} units of ${product.name} to ${customer.name} - ₦${revenue.toFixed(2)}`
-            );
 
             saveData();
             displaySales();
-            displayCustomers();
-            displayStockLevels();
             updateDashboard();
             event.target.reset();
-            populateCustomerSelects();
             showAlert('Sale recorded!');
         }
 
@@ -1560,361 +1882,266 @@
             }
 
             empty.style.display = 'none';
-            tbody.innerHTML = data.sales.slice().reverse().map(s => `
-                <tr>
-                    <td>${s.date}</td>
-                    <td>${s.customerName}</td>
-                    <td>${s.product}</td>
-                    <td>${s.quantity}</td>
-                    <td>₦${s.revenue.toFixed(2)}</td>
-                    <td>${s.channel}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = data.sales.slice().reverse().map(s => {
+                const location = data.locations.find(l => l.id == s.locationId);
+                return `
+                    <tr>
+                        <td>${s.date}</td>
+                        <td>${location ? location.name : 'Unknown'}</td>
+                        <td>${s.product}</td>
+                        <td>${s.quantity}</td>
+                        <td>₦${s.revenue.toFixed(2)}</td>
+                        <td>${s.channel}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // ============================================
-        // CUSTOMER MANAGEMENT
+        // BILLING & INVOICES
         // ============================================
 
-        function displayCustomers() {
+        function displayBilling() {
             const data = getClientData();
-            const tbody = document.querySelector('#customersTable tbody');
-            const empty = document.getElementById('customersEmpty');
+            const client = DB.clients[AUTH.clientCode];
+            const productions = data.production;
 
-            if (data.customers.length === 0) {
+            document.getElementById('billingProductions').textContent = productions.length;
+            document.getElementById('billingRate').textContent = '₦' + client.rate.toFixed(2);
+            
+            const totalBillable = productions.reduce((sum, p) => sum + p.billableAmount, 0);
+            document.getElementById('billingTotal').textContent = '₦' + totalBillable.toFixed(2);
+
+            // Group by month
+            const byMonth = {};
+            productions.forEach(p => {
+                const date = new Date(p.date);
+                const monthKey = date.toISOString().substring(0, 7);
+                if (!byMonth[monthKey]) {
+                    byMonth[monthKey] = {
+                        productions: 0,
+                        materialCost: 0,
+                        laborCost: 0,
+                        billable: 0
+                    };
+                }
+                byMonth[monthKey].productions += 1;
+                byMonth[monthKey].materialCost += p.materialsCost;
+                byMonth[monthKey].laborCost += p.laborCost;
+                byMonth[monthKey].billable += p.billableAmount;
+            });
+
+            const tbody = document.querySelector('#billingTable tbody');
+            const empty = document.getElementById('billingEmpty');
+
+            if (Object.keys(byMonth).length === 0) {
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
                 return;
             }
 
             empty.style.display = 'none';
-            tbody.innerHTML = data.customers.map(c => `
+            tbody.innerHTML = Object.entries(byMonth).map(([month, data]) => `
                 <tr>
-                    <td>${c.name}</td>
-                    <td>${c.mobile}</td>
-                    <td>${c.email}</td>
-                    <td>${c.totalPurchases}</td>
-                    <td>₦${c.totalSpent.toFixed(2)}</td>
-                    <td>${c.lastPurchaseDate ? new Date(c.lastPurchaseDate).toLocaleDateString() : '-'}</td>
+                    <td>${month}</td>
+                    <td>${data.productions}</td>
+                    <td>₦${client.rate.toFixed(2)}</td>
+                    <td>₦${data.billable.toFixed(2)}</td>
+                    <td>₦${data.materialCost.toFixed(2)}</td>
+                    <td>₦${data.laborCost.toFixed(2)}</td>
                     <td>
-                        <button class="btn btn-secondary btn-small" onclick="viewCustomerHistory('${c.id}')">History</button>
+                        <button class="btn btn-secondary btn-small" onclick="generateInvoiceForMonth('${month}')">Invoice</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function viewCustomerHistory(customerId) {
-            const data = getClientData();
-            const customer = data.customers.find(c => c.id === customerId);
-            if (!customer) return;
-
-            let history = customer.purchaseHistory.map(p => `${p.date}: ${p.product} - ${p.qty} units (₦${p.amount.toFixed(2)})`).join('\n');
-            alert(`Purchase History for ${customer.name}:\n\n${history || 'No purchases'}`);
+        function generateInvoice(event) {
+            event.preventDefault();
+            const monthStr = document.getElementById('invoiceMonth').value;
+            generateInvoiceForMonth(monthStr);
         }
 
-        function populateCustomerSelects() {
+        function generateInvoiceForMonth(monthStr) {
             const data = getClientData();
-            const select = document.getElementById('existingCustomer');
-            select.innerHTML = '<option value="">-- Create New Customer --</option>' +
-                data.customers.map(c => `<option value="${c.id}">${c.name} (${c.mobile})</option>`).join('');
+            const client = DB.clients[AUTH.clientCode];
+            const [year, month] = monthStr.split('-');
+
+            const monthProductions = data.production.filter(p => {
+                const pDate = new Date(p.date);
+                return pDate.getFullYear() === parseInt(year) && (pDate.getMonth() + 1).toString().padStart(2, '0') === month;
+            });
+
+            if (monthProductions.length === 0) {
+                showAlert('No productions in this month', 'error');
+                return;
+            }
+
+            const startDate = new Date(year, parseInt(month) - 1, 1);
+            const endDate = new Date(year, parseInt(month), 0);
+            const totalAmount = monthProductions.reduce((sum, p) => sum + p.billableAmount, 0);
+
+            const invoice = {
+                id: 'INV-' + Date.now(),
+                invoiceNumber: `INV-${year}${month}-${data.invoices.length + 1}`,
+                monthYear: monthStr,
+                startDate: startDate.toLocaleDateString(),
+                endDate: endDate.toLocaleDateString(),
+                productions: monthProductions.length,
+                productionRate: client.rate,
+                materialCost: monthProductions.reduce((sum, p) => sum + p.materialsCost, 0),
+                laborCost: monthProductions.reduce((sum, p) => sum + p.laborCost, 0),
+                totalAmount: totalAmount,
+                createdDate: new Date().toISOString(),
+                status: 'pending'
+            };
+
+            data.invoices.push(invoice);
+            saveData();
+            displayInvoices();
+            showInvoice(invoice);
+            showAlert('Invoice generated!');
+        }
+
+        function displayInvoices() {
+            const data = getClientData();
+            const tbody = document.querySelector('#invoicesTable tbody');
+            const empty = document.getElementById('invoicesEmpty');
+
+            if (data.invoices.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = data.invoices.slice().reverse().map(inv => `
+                <tr>
+                    <td>${inv.invoiceNumber}</td>
+                    <td>${inv.startDate} - ${inv.endDate}</td>
+                    <td>${inv.productions}</td>
+                    <td>₦${inv.totalAmount.toFixed(2)}</td>
+                    <td>${inv.status}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-small" onclick="printInvoice('${inv.id}')">Print</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showInvoice(invoice) {
+            const client = DB.clients[AUTH.clientCode];
+            const html = `
+                <div class="invoice-container">
+                    <div class="invoice-header">
+                        <h2>🍽️ BECAN INVOICE</h2>
+                        <p style="margin: 1rem 0; color: #0f6e56; font-weight: 600;">${invoice.invoiceNumber}</p>
+                    </div>
+
+                    <div class="invoice-details">
+                        <div>
+                            <p><strong>Bill To:</strong></p>
+                            <p>${client.name}</p>
+                            <p>${client.code}</p>
+                            <p>${client.email}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <p><strong>Invoice Period:</strong></p>
+                            <p>${invoice.startDate}</p>
+                            <p>to ${invoice.endDate}</p>
+                            <p style="margin-top: 1rem;"><strong>Invoice Date:</strong> ${new Date(invoice.createdDate).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+
+                    <table class="invoice-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Description</th>
+                                <th style="text-align: right;">Quantity</th>
+                                <th style="text-align: right;">Unit Price (₦)</th>
+                                <th style="text-align: right;">Amount (₦)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="border-bottom: none;">Production Services</td>
+                                <td style="text-align: right; border-bottom: none;">${invoice.productions}</td>
+                                <td style="text-align: right; border-bottom: none;">₦${invoice.productionRate.toFixed(2)}</td>
+                                <td style="text-align: right; border-bottom: none;">₦${invoice.totalAmount.toFixed(2)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 6px;">
+                        <p style="margin-bottom: 0.5rem;"><strong>Breakdown:</strong></p>
+                        <p style="margin: 0.25rem 0;">Material Costs: ₦${invoice.materialCost.toFixed(2)}</p>
+                        <p style="margin: 0.25rem 0;">Labor Costs: ₦${invoice.laborCost.toFixed(2)}</p>
+                    </div>
+
+                    <div class="invoice-total">
+                        <p>TOTAL AMOUNT DUE: ₦${invoice.totalAmount.toFixed(2)}</p>
+                    </div>
+
+                    <div style="margin-top: 2rem; text-align: center; color: #666; font-size: 0.85rem;">
+                        <p>Thank you for your business!</p>
+                        <p>Payment Terms: Net 30</p>
+                    </div>
+                </div>
+            `;
+
+            // Display in modal or new window
+            const invoiceWindow = window.open('', 'invoice');
+            invoiceWindow.document.write(html);
+            invoiceWindow.document.close();
+        }
+
+        function printInvoice(invoiceId) {
+            const data = getClientData();
+            const invoice = data.invoices.find(i => i.id === invoiceId);
+            if (invoice) showInvoice(invoice);
         }
 
         // ============================================
-        // STOCK LEVELS & DASHBOARD
+        // DASHBOARD
         // ============================================
-
-        function displayStockLevels() {
-            const data = getClientData();
-
-            // Raw materials
-            const stockTbody = document.querySelector('#stockTable tbody');
-            stockTbody.innerHTML = data.ingredients.map(ing => `
-                <tr>
-                    <td>${ing.name}</td>
-                    <td>${ing.totalStock}</td>
-                    <td>${ing.unit}</td>
-                    <td>₦${ing.costPerUnit.toFixed(2)}</td>
-                    <td>₦${(ing.totalStock * ing.costPerUnit).toFixed(2)}</td>
-                    <td>${ing.batches.filter(b => b.status === 'active').length} active</td>
-                </tr>
-            `).join('');
-
-            // Finished products
-            const finishedStockTbody = document.querySelector('#finishedStockTable tbody');
-            const finishedProducts = data.products.filter(p => p.type === 'finished');
-            finishedStockTbody.innerHTML = finishedProducts.map(p => `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${p.stock}</td>
-                    <td>₦${p.costPerUnit.toFixed(2)}</td>
-                    <td>₦${p.sellingPrice.toFixed(2)}</td>
-                    <td>₦${p.profitPerUnit.toFixed(2)} (${p.profitMargin}%)</td>
-                    <td>₦${(p.stock * p.profitPerUnit).toFixed(2)}</td>
-                </tr>
-            `).join('');
-        }
 
         function updateDashboard() {
             const data = getClientData();
+            const selectedLocation = document.getElementById('dashboardLocation')?.value || 'all';
 
-            // Summary stats
+            let productions = data.production;
+            if (selectedLocation !== 'all') {
+                productions = productions.filter(p => p.locationId == selectedLocation);
+            }
+
             document.getElementById('totalRawMaterials').textContent = data.ingredients.length;
-            document.getElementById('totalRawQty').textContent = data.ingredients.reduce((sum, i) => sum + i.totalStock, 0).toFixed(0);
             document.getElementById('totalProducts').textContent = data.products.length;
-            document.getElementById('totalFinishedQty').textContent = data.products.filter(p => p.type === 'finished').reduce((sum, p) => sum + p.stock, 0).toFixed(0);
+            document.getElementById('totalProductions').textContent = productions.length;
 
-            // Top 5 customers
-            const topCustomers = [...data.customers].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5);
-            const topCustomersTable = document.querySelector('#topCustomersTable tbody');
-            const topCustomersEmpty = document.getElementById('topCustomersEmpty');
+            const totalBillable = productions.reduce((sum, p) => sum + p.billableAmount, 0);
+            document.getElementById('totalBillable').textContent = '₦' + totalBillable.toFixed(2);
 
-            if (topCustomers.length === 0) {
-                topCustomersTable.innerHTML = '';
-                topCustomersEmpty.style.display = 'block';
-            } else {
-                topCustomersEmpty.style.display = 'none';
-                topCustomersTable.innerHTML = topCustomers.map(c => `
+            // Recent productions
+            const recentProductions = productions.slice().reverse().slice(0, 10);
+            const tbody = document.querySelector('#recentProductionsTable tbody');
+            tbody.innerHTML = recentProductions.map(p => {
+                const location = data.locations.find(l => l.id == p.locationId);
+                return `
                     <tr>
-                        <td>${c.name}</td>
-                        <td>${c.mobile}</td>
-                        <td>₦${c.totalSpent.toFixed(2)}</td>
-                        <td>${c.totalPurchases}</td>
-                        <td>${c.lastPurchaseDate ? new Date(c.lastPurchaseDate).toLocaleDateString() : '-'}</td>
+                        <td>${p.date}</td>
+                        <td>${location ? location.name : 'Unknown'}</td>
+                        <td>${p.productName}</td>
+                        <td>${p.quantity}</td>
+                        <td>₦${p.totalCost.toFixed(2)}</td>
+                        <td>₦${p.billableAmount.toFixed(2)}</td>
                     </tr>
-                `).join('');
+                `;
+            }).join('');
+
+            if (AUTH.role === 'client' || AUTH.userType === 'platform') {
+                displayBilling();
+                displayInvoices();
             }
-
-            // Recent activity (last 10)
-            const recentActivities = [...data.activities].reverse().slice(0, 10);
-            const recentActivityTable = document.querySelector('#recentActivityTable tbody');
-            const recentActivityEmpty = document.getElementById('recentActivityEmpty');
-
-            if (recentActivities.length === 0) {
-                recentActivityTable.innerHTML = '';
-                recentActivityEmpty.style.display = 'block';
-            } else {
-                recentActivityEmpty.style.display = 'none';
-                recentActivityTable.innerHTML = recentActivities.map(a => `
-                    <tr>
-                        <td>${new Date(a.timestamp).toLocaleString()}</td>
-                        <td>${formatActivityType(a.type)}</td>
-                        <td>${a.details}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        function formatActivityType(type) {
-            const types = {
-                'ingredient_added': '➕ Ingredient Added',
-                'ingredient_deleted': '🗑️ Ingredient Deleted',
-                'product_created': '📦 Product Created',
-                'product_deleted': '🗑️ Product Deleted',
-                'production_logged': '🏭 Production Run',
-                'sale_logged': '💰 Sale Logged',
-                'batch_writeoff': '❌ Batch Write-off'
-            };
-            return types[type] || type;
-        }
-
-        function displayActivityLog(filterType = '') {
-            const data = getClientData();
-            const activities = data.activities || [];
-            const tbody = document.querySelector('#activityTable tbody');
-            const empty = document.getElementById('activityEmpty');
-
-            let filtered = activities;
-            if (filterType) {
-                filtered = activities.filter(a => a.type === filterType);
-            }
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tbody.innerHTML = filtered.slice().reverse().map(activity => `
-                <tr>
-                    <td><code>${activity.id}</code></td>
-                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
-                    <td>${activity.staffName}</td>
-                    <td>${formatActivityType(activity.type)}</td>
-                    <td>${activity.details}</td>
-                </tr>
-            `).join('');
-        }
-
-        function applyActivityFilter() {
-            const filterType = document.getElementById('activityFilter').value;
-            displayActivityLog(filterType);
-        }
-
-        // ============================================
-        // WRITE-OFF RECOMMENDATIONS (ADMIN)
-        // ============================================
-
-        function displayWriteoffRecommendations() {
-            const clientCodes = Object.keys(DB.clientData);
-            const tbody = document.querySelector('#writeoffTable tbody');
-            const empty = document.getElementById('writeoffEmpty');
-
-            let recommendations = [];
-
-            for (let clientCode of clientCodes) {
-                const data = DB.clientData[clientCode];
-                for (let ingredient of data.ingredients) {
-                    for (let batch of ingredient.batches) {
-                        if (batch.status === 'written_off') continue;
-
-                        const daysOld = Math.floor((new Date() - new Date(batch.dateAdded)) / (1000 * 60 * 60 * 24));
-                        const daysRemaining = ingredient.shelfLifeDays - daysOld;
-
-                        if (daysRemaining <= 0) {
-                            recommendations.push({
-                                clientCode,
-                                materialName: ingredient.name,
-                                batchId: batch.id,
-                                daysOld,
-                                shelfLife: ingredient.shelfLifeDays,
-                                qty: batch.qty,
-                                unit: ingredient.unit,
-                                ingredientId: ingredient.id
-                            });
-                        }
-                    }
-                }
-            }
-
-            if (recommendations.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tbody.innerHTML = recommendations.map(r => `
-                <tr>
-                    <td>${r.materialName}</td>
-                    <td>${r.batchId}</td>
-                    <td>${r.daysOld}</td>
-                    <td>${r.shelfLife}</td>
-                    <td>${r.qty} ${r.unit}</td>
-                    <td>
-                        <button class="btn btn-danger btn-small" onclick="adminWriteoffBatch('${r.clientCode}', ${r.ingredientId}, '${r.batchId}')">Write-off</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function adminWriteoffBatch(clientCode, ingredientId, batchId) {
-            const data = DB.clientData[clientCode];
-            const ingredient = data.ingredients.find(i => i.id === ingredientId);
-            const batch = ingredient.batches.find(b => b.id === batchId);
-
-            if (!confirm(`Write off ${batch.qty} ${ingredient.unit} of ${ingredient.name}?`)) return;
-
-            batch.status = 'written_off';
-            ingredient.totalStock -= batch.qty;
-
-            saveData();
-            displayWriteoffRecommendations();
-            showAlert('Batch written off');
-        }
-
-        // ============================================
-        // ADMIN PANEL
-        // ============================================
-
-        function createClient(event) {
-            event.preventDefault();
-            const name = document.getElementById('newClientName').value;
-            const code = document.getElementById('newClientCode').value.toLowerCase();
-            const email = document.getElementById('newClientEmail').value;
-            const pin = document.getElementById('newClientPin').value;
-
-            if (DB.clients[code]) {
-                showAlert('Business code already exists', 'error');
-                return;
-            }
-
-            DB.clients[code] = {
-                name,
-                code,
-                email,
-                created: new Date().toISOString(),
-                staff: { [pin]: { name: 'Default Staff', role: 'admin' } }
-            };
-
-            DB.clientData[code] = {
-                ingredients: [],
-                products: [],
-                production: [],
-                sales: [],
-                customers: [],
-                activities: []
-            };
-
-            saveData();
-            sendWelcomeEmail(name, code, pin, email);
-            displayClientsTable();
-            event.target.reset();
-            showAlert('Business created successfully! Welcome email sent.');
-        }
-
-        function displayClientsTable() {
-            const tbody = document.querySelector('#clientsTable tbody');
-            const empty = document.getElementById('clientsEmpty');
-
-            if (Object.keys(DB.clients).length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tbody.innerHTML = Object.values(DB.clients).map(client => `
-                <tr>
-                    <td>${client.name}</td>
-                    <td><code>${client.code}</code></td>
-                    <td>${client.email}</td>
-                    <td>${new Date(client.created).toLocaleDateString()}</td>
-                    <td>
-                        <button class="btn btn-danger btn-small" onclick="deleteClient('${client.code}')">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function deleteClient(code) {
-            if (confirm('Delete this business and all data?')) {
-                delete DB.clients[code];
-                delete DB.clientData[code];
-                saveData();
-                displayClientsTable();
-                showAlert('Business deleted');
-            }
-        }
-
-        function sendWelcomeEmail(clientName, clientCode, clientPin, clientEmail) {
-            const appUrl = window.location.href.split('?')[0];
-
-            emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
-                to_email: clientEmail,
-                client_name: clientName,
-                client_code: clientCode,
-                client_pin: clientPin,
-                app_url: appUrl
-            }).then(
-                function(response) {
-                    console.log('Email sent!', response);
-                },
-                function(error) {
-                    console.error('Email failed:', error);
-                    showAlert('⚠️ Business created but email failed. Send manually.', 'error');
-                }
-            );
         }
 
         // ============================================
@@ -1940,7 +2167,7 @@
         function populateRecipeSelects() {
             const data = getClientData();
             const options = '<option value="">Select raw material...</option>' +
-                data.ingredients.map(i => `<option value="${i.id}">${i.name} - ${i.totalStock} ${i.unit} available</option>`).join('');
+                data.ingredients.map(i => `<option value="${i.id}">${i.name} - ${i.totalStock} available</option>`).join('');
             document.getElementById('finishedIngredient').innerHTML = options;
         }
 
@@ -1948,15 +2175,15 @@
             const data = getClientData();
             const finished = data.products.filter(p => p.type === 'finished');
             const options = '<option value="">Select product...</option>' +
-                finished.map(p => `<option value="${p.id}">${p.name} (${p.stock} available)</option>`).join('');
+                finished.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('productToProduce').innerHTML = options;
         }
 
         function populateSalesSelect() {
             const data = getClientData();
             const finished = data.products.filter(p => p.type === 'finished');
-            const options = '<option value="">Select finished product...</option>' +
-                finished.map(p => `<option value="${p.id}">${p.name} - ₦${p.sellingPrice.toFixed(2)} (${p.stock} available)</option>`).join('');
+            const options = '<option value="">Select product...</option>' +
+                finished.map(p => `<option value="${p.id}">${p.name} - ₦${p.sellingPrice.toFixed(2)}</option>`).join('');
             document.getElementById('saleProduct').innerHTML = options;
         }
 
@@ -1965,14 +2192,14 @@
             displayProducts();
             displayProduction();
             displaySales();
-            displayCustomers();
-            displayStockLevels();
-            displayActivityLog();
+            displayLocations();
+            displayStaff();
+            displayInvoices();
             updateDashboard();
             populateRecipeSelects();
             populateProductionSelect();
             populateSalesSelect();
-            populateCustomerSelects();
+            populateLocationSelects();
         }
 
         // ============================================
@@ -2007,17 +2234,23 @@
                 body: JSON.stringify({
                     type: 'sync_all',
                     clientCode: AUTH.clientCode,
-                    ingredients: data.ingredients,
-                    products: data.products,
-                    production: data.production,
-                    sales: data.sales,
-                    customers: data.customers,
-                    activities: data.activities || []
+                    data: data
                 })
             })
             .then(r => r.json())
             .then(() => showAlert('✓ Backup successful!', 'success'))
             .catch(err => showAlert('✗ Backup failed', 'error'));
+        }
+
+        function sendWelcomeEmail(clientName, clientCode, clientPin, clientEmail) {
+            const appUrl = window.location.href.split('?')[0];
+            emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+                to_email: clientEmail,
+                client_name: clientName,
+                client_code: clientCode,
+                client_pin: clientPin,
+                app_url: appUrl
+            }).catch(error => console.error('Email failed:', error));
         }
 
         // ============================================
