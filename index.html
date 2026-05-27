@@ -395,6 +395,7 @@
                 <button class="tab-btn" onclick="switchTab('production')">Production</button>
                 <button class="tab-btn" onclick="switchTab('sales')">Sales</button>
                 <button class="tab-btn" onclick="switchTab('stock')">Stock Levels</button>
+                <button class="tab-btn" onclick="switchTab('activity')">Activity Log</button>
                 <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
             </div>
 
@@ -750,7 +751,50 @@
                 </div>
             </div>
 
-            <!-- SETTINGS -->
+            <!-- ACTIVITY LOG -->
+            <div id="activity" class="tab-content">
+                <div class="card">
+                    <h2>📋 Complete Activity Log</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Filter by Activity Type</label>
+                            <select id="activityFilter">
+                                <option value="">All Activities</option>
+                                <option value="ingredient_added">Ingredient Added</option>
+                                <option value="product_created">Product Created</option>
+                                <option value="production_logged">Production Logged</option>
+                                <option value="sale_logged">Sale Logged</option>
+                                <option value="ingredient_deleted">Ingredient Deleted</option>
+                                <option value="product_deleted">Product Deleted</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-primary" onclick="applyActivityFilter()">Filter</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <table id="activityTable">
+                        <thead>
+                            <tr>
+                                <th>Activity ID</th>
+                                <th>Timestamp</th>
+                                <th>Staff Member</th>
+                                <th>Activity Type</th>
+                                <th>Details</th>
+                                <th>Changes</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="activityEmpty" class="empty-state">No activities yet</div>
+                </div>
+            </div>
+
+            <!-- SETTINGS
+ -->
             <div id="settings" class="tab-content">
                 <div class="card">
                     <h2>Settings</h2>
@@ -766,10 +810,12 @@
 
                 <div class="card">
                     <h2>☁️ Google Sheets Backup</h2>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+                        One-way backup to Google Sheets. All records are progressive and app is the source of truth.
+                    </p>
                     <div class="button-group">
                         <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
-                        <button class="btn btn-primary" onclick="backupToSheets()">Backup Now</button>
-                        <button class="btn btn-secondary" onclick="restoreFromSheets()">Restore Data</button>
+                        <button class="btn btn-primary" onclick="backupToSheets()">💾 Backup Now</button>
                     </div>
                 </div>
             </div>
@@ -803,6 +849,101 @@
             clients: {},
             clientData: {}
         };
+
+        let currentRecipe = {
+            semi: [],
+            finished: []
+        };
+
+        // ============================================
+        // ACTIVITY LOGGING SYSTEM
+        // ============================================
+
+        function generateActivityId() {
+            const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+            const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return `ACT-${timestamp}-${random}`;
+        }
+
+        function logActivity(type, staffName, details, changes = {}) {
+            const data = getClientData();
+            if (!data.activities) {
+                data.activities = [];
+            }
+
+            const activity = {
+                id: generateActivityId(),
+                timestamp: new Date().toISOString(),
+                type: type,
+                staffName: staffName || 'Unknown',
+                details: details,
+                changes: changes // {field: {old: value, new: value}}
+            };
+
+            data.activities.push(activity);
+            saveData();
+            return activity;
+        }
+
+        function displayActivityLog(filterType = '') {
+            const data = getClientData();
+            const activities = data.activities || [];
+            const tbody = document.querySelector('#activityTable tbody');
+            const empty = document.getElementById('activityEmpty');
+
+            let filtered = activities;
+            if (filterType) {
+                filtered = activities.filter(a => a.type === filterType);
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = filtered.slice().reverse().map(activity => {
+                const date = new Date(activity.timestamp);
+                const timeStr = date.toLocaleString();
+                
+                let changesHtml = '';
+                if (Object.keys(activity.changes).length > 0) {
+                    changesHtml = Object.entries(activity.changes)
+                        .map(([field, vals]) => `${field}: ${vals.old} → ${vals.new}`)
+                        .join('<br>');
+                }
+
+                return `
+                    <tr>
+                        <td><code>${activity.id}</code></td>
+                        <td>${timeStr}</td>
+                        <td>${activity.staffName}</td>
+                        <td>${formatActivityType(activity.type)}</td>
+                        <td>${activity.details}</td>
+                        <td>${changesHtml || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function formatActivityType(type) {
+            const types = {
+                'ingredient_added': '➕ Ingredient Added',
+                'ingredient_deleted': '🗑️ Ingredient Deleted',
+                'product_created': '📦 Product Created',
+                'product_deleted': '🗑️ Product Deleted',
+                'production_logged': '🏭 Production Run',
+                'sale_logged': '💰 Sale Logged',
+                'client_created': '🏢 Business Created'
+            };
+            return types[type] || type;
+        }
+
+        function applyActivityFilter() {
+            const filterType = document.getElementById('activityFilter').value;
+            displayActivityLog(filterType);
+        }
 
         let currentRecipe = {
             semi: [],
@@ -946,7 +1087,8 @@
                 ingredients: [],
                 products: [],
                 production: [],
-                sales: []
+                sales: [],
+                activities: []
             };
 
             saveData();
@@ -1046,6 +1188,20 @@
             };
 
             data.ingredients.push(ingredient);
+            
+            // Log activity
+            logActivity(
+                'ingredient_added',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Added ${ingredient.name}`,
+                {
+                    name: {old: '-', new: ingredient.name},
+                    unit: {old: '-', new: ingredient.unit},
+                    cost: {old: '0', new: ingredient.cost},
+                    stock: {old: '0', new: ingredient.stock}
+                }
+            );
+
             saveData();
             displayIngredients();
             populateRecipeSelects();
@@ -1080,11 +1236,22 @@
 
         function deleteIngredient(id) {
             const data = getClientData();
-            data.ingredients = data.ingredients.filter(i => i.id !== id);
-            saveData();
-            displayIngredients();
-            populateRecipeSelects();
-            showAlert('Material deleted');
+            const ingredient = data.ingredients.find(i => i.id === id);
+            
+            if (confirm('Delete this material?')) {
+                data.ingredients = data.ingredients.filter(i => i.id !== id);
+                
+                logActivity(
+                    'ingredient_deleted',
+                    AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                    `Deleted ${ingredient.name}`
+                );
+                
+                saveData();
+                displayIngredients();
+                populateRecipeSelects();
+                showAlert('Material deleted');
+            }
         }
 
         // ============================================
@@ -1248,6 +1415,8 @@
 
             // Check if ingredients exist
             let totalCost = 0;
+            let ingredientChanges = {};
+            
             for (let recipeItem of product.recipe) {
                 const ingredient = data.ingredients.find(i => i.id == recipeItem.itemId);
                 const semiProduct = data.products.find(p => p.id == recipeItem.itemId);
@@ -1268,21 +1437,27 @@
                 }
             }
 
-            // Deduct ingredients
+            // Deduct ingredients and track changes
             for (let recipeItem of product.recipe) {
                 const ingredient = data.ingredients.find(i => i.id == recipeItem.itemId);
                 const semiProduct = data.products.find(p => p.id == recipeItem.itemId);
                 
                 const needed = recipeItem.qty * qty;
                 if (ingredient) {
+                    const oldStock = ingredient.stock;
                     ingredient.stock -= needed;
+                    ingredientChanges[ingredient.name] = {old: oldStock, new: ingredient.stock};
                 } else if (semiProduct) {
+                    const oldStock = semiProduct.stock;
                     semiProduct.stock -= needed;
+                    ingredientChanges[semiProduct.name] = {old: oldStock, new: semiProduct.stock};
                 }
             }
 
             // Increase product stock
+            const oldProductStock = product.stock;
             product.stock += qty;
+            ingredientChanges[`${product.name} (produced)`] = {old: oldProductStock, new: product.stock};
 
             // Log production
             data.production.push({
@@ -1294,6 +1469,14 @@
                 cost: totalCost,
                 notes: document.getElementById('productionNotes').value
             });
+
+            // Log activity
+            logActivity(
+                'production_logged',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Produced ${qty} units of ${product.name}`,
+                ingredientChanges
+            );
 
             saveData();
             displayProduction();
@@ -1347,6 +1530,7 @@
                 return;
             }
 
+            const oldStock = product.stock;
             product.stock -= qty;
 
             data.sales.push({
@@ -1358,6 +1542,17 @@
                 revenue: product.price * qty,
                 channel: document.getElementById('saleChannel').value
             });
+
+            // Log activity
+            logActivity(
+                'sale_logged',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Sold ${qty} units of ${product.name} via ${document.getElementById('saleChannel').value}`,
+                {
+                    [product.name + ' stock']: {old: oldStock, new: product.stock},
+                    revenue: {old: '0', new: (product.price * qty).toFixed(2)}
+                }
+            );
 
             saveData();
             displaySales();
@@ -1492,6 +1687,7 @@
             displayProduction();
             displaySales();
             displayStockLevels();
+            displayActivityLog();
             updateDashboard();
             populateRecipeSelects();
             populateProductionSelect();
@@ -1533,45 +1729,13 @@
                     ingredients: data.ingredients,
                     products: data.products,
                     production: data.production,
-                    sales: data.sales
+                    sales: data.sales,
+                    activities: data.activities || []
                 })
             })
             .then(r => r.json())
-            .then(() => showAlert('✓ Backup successful!', 'success'))
+            .then(() => showAlert('✓ Backup successful! All data including activity log synced.', 'success'))
             .catch(err => showAlert('✗ Backup failed', 'error'));
-        }
-
-        function restoreFromSheets() {
-            if (!AUTH.clientCode) {
-                showAlert('Not logged in', 'error');
-                return;
-            }
-
-            if (!confirm('Replace current data with backup?')) return;
-
-            showAlert('Restoring...', 'info');
-
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    type: 'restore_data',
-                    clientCode: AUTH.clientCode
-                })
-            })
-            .then(r => r.json())
-            .then(result => {
-                if (result.ingredients) {
-                    const clientData = DB.clientData[AUTH.clientCode];
-                    clientData.ingredients = result.ingredients;
-                    clientData.products = result.products || [];
-                    clientData.production = result.production || [];
-                    clientData.sales = result.sales || [];
-                    saveData();
-                    updateAllDisplays();
-                    showAlert('✓ Restored!', 'success');
-                }
-            })
-            .catch(err => showAlert('✗ Restore failed', 'error'));
         }
 
         // ============================================
