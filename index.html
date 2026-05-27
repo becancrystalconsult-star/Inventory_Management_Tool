@@ -112,7 +112,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 1rem;
         }
@@ -183,6 +183,12 @@
             border-left: 4px solid #c62828;
         }
 
+        .alert-warning {
+            background: #ffe0b2;
+            color: #e65100;
+            border-left: 4px solid #e65100;
+        }
+
         .btn {
             padding: 0.8rem 1.5rem;
             border: none;
@@ -239,11 +245,13 @@
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid #ddd;
+            font-size: 0.9rem;
         }
 
         td {
             padding: 0.8rem;
             border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
         }
 
         tr:hover {
@@ -254,55 +262,6 @@
             text-align: center;
             padding: 2rem;
             color: #999;
-        }
-
-        .product-type-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .product-type-tab {
-            padding: 0.6rem 1rem;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .product-type-tab.active {
-            background: #0f6e56;
-            color: white;
-            border-color: #0f6e56;
-        }
-
-        .product-section {
-            display: none;
-        }
-
-        .product-section.active {
-            display: block;
-        }
-
-        .recipe-item {
-            background: #f5f5f5;
-            padding: 0.8rem;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .recipe-input {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .recipe-input input, .recipe-input select {
-            flex: 1;
         }
 
         .stats {
@@ -326,6 +285,12 @@
             color: #0f6e56;
         }
 
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
         .button-group {
             display: flex;
             gap: 0.5rem;
@@ -336,6 +301,45 @@
         #alerts {
             margin-bottom: 1rem;
         }
+
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .batch-item {
+            background: #f9f9f9;
+            padding: 0.8rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            border-left: 4px solid #0f6e56;
+        }
+
+        .customer-select {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .small-text {
+            font-size: 0.85rem;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -343,7 +347,7 @@
     <div id="loginContainer">
         <div class="login-container">
             <h2>🍽️ Becan Inventory System</h2>
-            <p style="color: #666; font-size: 0.9rem; margin-bottom: 1.5rem;">For Restaurants & Confectionery Shops</p>
+            <p class="small-text" style="margin-bottom: 1.5rem;">For Restaurants & Confectionery Shops</p>
             
             <div class="login-tabs">
                 <button class="login-tab active" onclick="switchLoginTab('admin')">Admin</button>
@@ -377,7 +381,7 @@
     <!-- APP -->
     <div id="appContainer">
         <div class="header">
-            <h1>🍽️ Becan Inventory System</h1>
+            <h1>🍽️ Becan Inventory</h1>
             <div>
                 <span id="userInfo" style="margin-right: 1rem;"></span>
                 <button class="logout-btn" onclick="logout()">Logout</button>
@@ -394,30 +398,66 @@
                 <button class="tab-btn" onclick="switchTab('products')">Products</button>
                 <button class="tab-btn" onclick="switchTab('production')">Production</button>
                 <button class="tab-btn" onclick="switchTab('sales')">Sales</button>
-                <button class="tab-btn" onclick="switchTab('stock')">Stock Levels</button>
+                <button class="tab-btn" onclick="switchTab('customers')">Customers</button>
+                <button class="tab-btn" onclick="switchTab('stock')">Stock</button>
                 <button class="tab-btn" onclick="switchTab('activity')">Activity Log</button>
                 <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
             </div>
 
             <!-- DASHBOARD -->
             <div id="dashboard" class="tab-content active">
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalIngredients">0</div>
-                        <div>Raw Materials</div>
+                <div class="card">
+                    <h2>📊 Business Summary</h2>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalRawMaterials">0</div>
+                            <div class="stat-label">Raw Materials (Items)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalRawQty">0</div>
+                            <div class="stat-label">Raw Materials (Qty)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalProducts">0</div>
+                            <div class="stat-label">Products</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalFinishedQty">0</div>
+                            <div class="stat-label">Finished Goods (Qty)</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalProducts">0</div>
-                        <div>Products</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalProduction">0</div>
-                        <div>Productions</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalSales">0</div>
-                        <div>Sales</div>
-                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>👥 Top 5 Customers</h2>
+                    <table id="topCustomersTable">
+                        <thead>
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Mobile</th>
+                                <th>Total Spent</th>
+                                <th>Purchases</th>
+                                <th>Last Purchase</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="topCustomersEmpty" class="empty-state">No customers yet</div>
+                </div>
+
+                <div class="card">
+                    <h2>📋 Recent Activity</h2>
+                    <table id="recentActivityTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Activity</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="recentActivityEmpty" class="empty-state">No recent activity</div>
                 </div>
             </div>
 
@@ -466,6 +506,25 @@
                     </table>
                     <div id="clientsEmpty" class="empty-state">No businesses yet</div>
                 </div>
+
+                <div class="card">
+                    <h2>📋 Write-off Recommendations</h2>
+                    <p class="small-text" style="margin-bottom: 1rem;">Items exceeding their shelf life</p>
+                    <table id="writeoffTable">
+                        <thead>
+                            <tr>
+                                <th>Material</th>
+                                <th>Batch ID</th>
+                                <th>Age (Days)</th>
+                                <th>Shelf Life</th>
+                                <th>Qty</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="writeoffEmpty" class="empty-state">No write-offs recommended</div>
+                </div>
             </div>
 
             <!-- RAW MATERIALS -->
@@ -491,13 +550,17 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Cost per Unit (₦)</label>
-                                <input type="number" id="ingredientCost" min="0" step="0.01">
+                                <label>Cost per Unit (₦) *</label>
+                                <input type="number" id="ingredientCost" min="0" step="0.01" required>
                             </div>
                             <div class="form-group">
-                                <label>Current Stock</label>
-                                <input type="number" id="ingredientStock" min="0" step="0.01">
+                                <label>Shelf Life (Days) *</label>
+                                <input type="number" id="ingredientShelfLife" min="1" placeholder="e.g., 30" required>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Initial Stock Qty *</label>
+                            <input type="number" id="ingredientStock" min="0" step="0.01" required>
                         </div>
                         <button type="submit" class="btn btn-primary">Add Material</button>
                     </form>
@@ -505,114 +568,57 @@
 
                 <div class="card">
                     <h2>Raw Materials</h2>
-                    <table id="ingredientsTable">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Unit</th>
-                                <th>Cost</th>
-                                <th>Stock</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                    <div id="ingredientsEmpty" class="empty-state">No materials yet</div>
+                    <div id="ingredientsList"></div>
                 </div>
             </div>
 
             <!-- PRODUCTS -->
             <div id="products" class="tab-content">
-                <div class="product-type-tabs">
-                    <button class="product-type-tab active" onclick="switchProductType('semi_finished')">Semi-Finished Goods</button>
-                    <button class="product-type-tab" onclick="switchProductType('finished')">Finished Products</button>
-                </div>
-
-                <!-- SEMI-FINISHED PRODUCTS -->
-                <div id="semiFinishedSection" class="product-section active">
-                    <div class="card">
-                        <h2>Create Semi-Finished Product</h2>
-                        <form onsubmit="addProduct(event, 'semi_finished')">
+                <div class="card">
+                    <h2>Create Finished Product</h2>
+                    <form onsubmit="addProduct(event)">
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Product Name *</label>
-                                <input type="text" id="semiName" required>
+                                <input type="text" id="finishedName" required>
                             </div>
                             <div class="form-group">
-                                <label>Recipe (select ingredients)</label>
-                                <div class="recipe-input">
-                                    <select id="semiIngredient">
-                                        <option value="">Select ingredient...</option>
-                                    </select>
-                                    <input type="number" id="semiQty" placeholder="Qty" min="0" step="0.01">
-                                    <button type="button" class="btn btn-secondary btn-small" onclick="addRecipeItem('semi')">Add</button>
-                                </div>
-                                <div id="semiRecipe"></div>
+                                <label>Selling Price (₦) *</label>
+                                <input type="number" id="finishedPrice" min="0" step="0.01" required>
                             </div>
-                            <button type="submit" class="btn btn-primary">Save Product</button>
-                        </form>
-                    </div>
-
-                    <div class="card">
-                        <h2>Semi-Finished Products</h2>
-                        <table id="semiTable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Ingredients</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                        <div id="semiEmpty" class="empty-state">No semi-finished products yet</div>
-                    </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Recipe (Raw Materials)</label>
+                            <div class="form-row">
+                                <select id="finishedIngredient">
+                                    <option value="">Select raw material...</option>
+                                </select>
+                                <input type="number" id="finishedQty" placeholder="Qty needed" min="0" step="0.01">
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-small" style="margin-top: 0.5rem;" onclick="addRecipeItem()">Add to Recipe</button>
+                            <div id="finishedRecipe" style="margin-top: 1rem;"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Product</button>
+                    </form>
                 </div>
 
-                <!-- FINISHED PRODUCTS -->
-                <div id="finishedSection" class="product-section">
-                    <div class="card">
-                        <h2>Create Finished Product</h2>
-                        <form onsubmit="addProduct(event, 'finished')">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Product Name *</label>
-                                    <input type="text" id="finishedName" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Selling Price (₦) *</label>
-                                    <input type="number" id="finishedPrice" min="0" step="0.01" required>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Recipe (Raw Materials & Semi-Finished)</label>
-                                <div class="recipe-input">
-                                    <select id="finishedIngredient">
-                                        <option value="">Select ingredient/product...</option>
-                                    </select>
-                                    <input type="number" id="finishedQty" placeholder="Qty" min="0" step="0.01">
-                                    <button type="button" class="btn btn-secondary btn-small" onclick="addRecipeItem('finished')">Add</button>
-                                </div>
-                                <div id="finishedRecipe"></div>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Product</button>
-                        </form>
-                    </div>
-
-                    <div class="card">
-                        <h2>Finished Products</h2>
-                        <table id="finishedTable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Price</th>
-                                    <th>Ingredients</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                        <div id="finishedEmpty" class="empty-state">No finished products yet</div>
-                    </div>
+                <div class="card">
+                    <h2>Finished Products</h2>
+                    <table id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Price</th>
+                                <th>Cost/Unit</th>
+                                <th>Profit/Unit</th>
+                                <th>Margin %</th>
+                                <th>Ingredients</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="productsEmpty" class="empty-state">No products yet</div>
                 </div>
             </div>
 
@@ -633,6 +639,16 @@
                                 <input type="number" id="productionQty" min="1" step="0.01" required>
                             </div>
                         </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Labor - Hours</label>
+                                <input type="number" id="laborHours" min="0" step="0.5" placeholder="e.g., 2.5">
+                            </div>
+                            <div class="form-group">
+                                <label>Labor - Rate per Hour (₦)</label>
+                                <input type="number" id="laborRate" min="0" step="0.01" placeholder="e.g., 5000">
+                            </div>
+                        </div>
                         <div class="form-group">
                             <label>Notes</label>
                             <textarea id="productionNotes" rows="3"></textarea>
@@ -649,9 +665,11 @@
                             <tr>
                                 <th>Date</th>
                                 <th>Product</th>
-                                <th>Quantity</th>
-                                <th>Cost</th>
-                                <th>Notes</th>
+                                <th>Qty</th>
+                                <th>Material Cost</th>
+                                <th>Labor Cost</th>
+                                <th>Total Cost</th>
+                                <th>Cost/Unit</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -665,6 +683,31 @@
                 <div class="card">
                     <h2>Log Sale</h2>
                     <form onsubmit="addSale(event)">
+                        <div class="customer-select">
+                            <div class="form-group">
+                                <label>Select Existing Customer</label>
+                                <select id="existingCustomer">
+                                    <option value="">-- Or Create New --</option>
+                                </select>
+                            </div>
+                            <div style="border-left: 2px solid #ddd; padding-left: 1rem;">
+                                <p style="font-weight: 600; margin-bottom: 0.5rem;">OR Create New Customer</p>
+                                <div class="form-group">
+                                    <label>Customer Name *</label>
+                                    <input type="text" id="newCustomerName">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mobile</label>
+                                <input type="tel" id="customerMobile">
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="customerEmail">
+                            </div>
+                        </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Finished Product *</label>
@@ -695,6 +738,7 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
+                                <th>Customer</th>
                                 <th>Product</th>
                                 <th>Qty</th>
                                 <th>Revenue</th>
@@ -707,6 +751,28 @@
                 </div>
             </div>
 
+            <!-- CUSTOMERS -->
+            <div id="customers" class="tab-content">
+                <div class="card">
+                    <h2>Customer Management</h2>
+                    <table id="customersTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Mobile</th>
+                                <th>Email</th>
+                                <th>Total Purchases</th>
+                                <th>Total Spent</th>
+                                <th>Last Purchase</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="customersEmpty" class="empty-state">No customers yet</div>
+                </div>
+            </div>
+
             <!-- STOCK LEVELS -->
             <div id="stock" class="tab-content">
                 <div class="card">
@@ -715,21 +781,11 @@
                         <thead>
                             <tr>
                                 <th>Material</th>
-                                <th>Stock</th>
+                                <th>Total Qty</th>
                                 <th>Unit</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-
-                <div class="card">
-                    <h2>Semi-Finished Goods Stock</h2>
-                    <table id="semiStockTable">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Stock</th>
+                                <th>Cost/Unit</th>
+                                <th>Total Value</th>
+                                <th>Batches</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -742,8 +798,11 @@
                         <thead>
                             <tr>
                                 <th>Product</th>
-                                <th>Stock</th>
-                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Cost/Unit</th>
+                                <th>Selling Price</th>
+                                <th>Profit/Unit</th>
+                                <th>Total Value</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -764,8 +823,7 @@
                                 <option value="product_created">Product Created</option>
                                 <option value="production_logged">Production Logged</option>
                                 <option value="sale_logged">Sale Logged</option>
-                                <option value="ingredient_deleted">Ingredient Deleted</option>
-                                <option value="product_deleted">Product Deleted</option>
+                                <option value="batch_writeoff">Batch Write-off</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -784,7 +842,6 @@
                                 <th>Staff Member</th>
                                 <th>Activity Type</th>
                                 <th>Details</th>
-                                <th>Changes</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -793,8 +850,7 @@
                 </div>
             </div>
 
-            <!-- SETTINGS
- -->
+            <!-- SETTINGS -->
             <div id="settings" class="tab-content">
                 <div class="card">
                     <h2>Settings</h2>
@@ -810,9 +866,7 @@
 
                 <div class="card">
                     <h2>☁️ Google Sheets Backup</h2>
-                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
-                        One-way backup to Google Sheets. All records are progressive and app is the source of truth.
-                    </p>
+                    <p class="small-text" style="margin-bottom: 1rem;">One-way backup to Google Sheets. App is the source of truth.</p>
                     <div class="button-group">
                         <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
                         <button class="btn btn-primary" onclick="backupToSheets()">💾 Backup Now</button>
@@ -851,106 +905,15 @@
         };
 
         let currentRecipe = {
-            semi: [],
             finished: []
         };
-
-        // ============================================
-        // ACTIVITY LOGGING SYSTEM
-        // ============================================
-
-        function generateActivityId() {
-            const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
-            const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-            return `ACT-${timestamp}-${random}`;
-        }
-
-        function logActivity(type, staffName, details, changes = {}) {
-            const data = getClientData();
-            if (!data.activities) {
-                data.activities = [];
-            }
-
-            const activity = {
-                id: generateActivityId(),
-                timestamp: new Date().toISOString(),
-                type: type,
-                staffName: staffName || 'Unknown',
-                details: details,
-                changes: changes // {field: {old: value, new: value}}
-            };
-
-            data.activities.push(activity);
-            saveData();
-            return activity;
-        }
-
-        function displayActivityLog(filterType = '') {
-            const data = getClientData();
-            const activities = data.activities || [];
-            const tbody = document.querySelector('#activityTable tbody');
-            const empty = document.getElementById('activityEmpty');
-
-            let filtered = activities;
-            if (filterType) {
-                filtered = activities.filter(a => a.type === filterType);
-            }
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tbody.innerHTML = filtered.slice().reverse().map(activity => {
-                const date = new Date(activity.timestamp);
-                const timeStr = date.toLocaleString();
-                
-                let changesHtml = '';
-                if (Object.keys(activity.changes).length > 0) {
-                    changesHtml = Object.entries(activity.changes)
-                        .map(([field, vals]) => `${field}: ${vals.old} → ${vals.new}`)
-                        .join('<br>');
-                }
-
-                return `
-                    <tr>
-                        <td><code>${activity.id}</code></td>
-                        <td>${timeStr}</td>
-                        <td>${activity.staffName}</td>
-                        <td>${formatActivityType(activity.type)}</td>
-                        <td>${activity.details}</td>
-                        <td>${changesHtml || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function formatActivityType(type) {
-            const types = {
-                'ingredient_added': '➕ Ingredient Added',
-                'ingredient_deleted': '🗑️ Ingredient Deleted',
-                'product_created': '📦 Product Created',
-                'product_deleted': '🗑️ Product Deleted',
-                'production_logged': '🏭 Production Run',
-                'sale_logged': '💰 Sale Logged',
-                'client_created': '🏢 Business Created'
-            };
-            return types[type] || type;
-        }
-
-        function applyActivityFilter() {
-            const filterType = document.getElementById('activityFilter').value;
-            displayActivityLog(filterType);
-        }
 
         // ============================================
         // DATA PERSISTENCE
         // ============================================
 
         function loadData() {
-            const stored = localStorage.getItem('manufacturingInventoryData');
+            const stored = localStorage.getItem('becanInventoryData');
             if (stored) {
                 try {
                     Object.assign(DB, JSON.parse(stored));
@@ -961,7 +924,34 @@
         }
 
         function saveData() {
-            localStorage.setItem('manufacturingInventoryData', JSON.stringify(DB));
+            localStorage.setItem('becanInventoryData', JSON.stringify(DB));
+        }
+
+        // ============================================
+        // ACTIVITY LOGGING
+        // ============================================
+
+        function generateActivityId() {
+            const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+            const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return `ACT-${timestamp}-${random}`;
+        }
+
+        function logActivity(type, staffName, details) {
+            const data = getClientData();
+            if (!data.activities) {
+                data.activities = [];
+            }
+
+            data.activities.push({
+                id: generateActivityId(),
+                timestamp: new Date().toISOString(),
+                type: type,
+                staffName: staffName || 'Unknown',
+                details: details
+            });
+
+            saveData();
         }
 
         // ============================================
@@ -1026,11 +1016,11 @@
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             updateUserInfo();
-            
-            // Show admin tab if master admin
+
             if (AUTH.userType === 'admin') {
                 document.getElementById('adminTabBtn').style.display = 'inline-block';
                 displayClientsTable();
+                displayWriteoffRecommendations();
             }
         }
 
@@ -1055,7 +1045,786 @@
         }
 
         // ============================================
-        // ADMIN PANEL (Master Admin Only)
+        // DATA HELPERS
+        // ============================================
+
+        function loadClientData() {
+            if (!DB.clientData[AUTH.clientCode]) {
+                DB.clientData[AUTH.clientCode] = {
+                    ingredients: [],
+                    products: [],
+                    production: [],
+                    sales: [],
+                    customers: [],
+                    activities: []
+                };
+            }
+            updateAllDisplays();
+        }
+
+        function getClientData() {
+            return DB.clientData[AUTH.clientCode] || {
+                ingredients: [],
+                products: [],
+                production: [],
+                sales: [],
+                customers: [],
+                activities: []
+            };
+        }
+
+        // ============================================
+        // RAW MATERIALS (INGREDIENTS) WITH BATCHES
+        // ============================================
+
+        function addIngredient(event) {
+            event.preventDefault();
+            const data = getClientData();
+            const qty = parseFloat(document.getElementById('ingredientStock').value);
+
+            const ingredient = {
+                id: Date.now(),
+                name: document.getElementById('ingredientName').value,
+                unit: document.getElementById('ingredientUnit').value,
+                costPerUnit: parseFloat(document.getElementById('ingredientCost').value) || 0,
+                shelfLifeDays: parseInt(document.getElementById('ingredientShelfLife').value) || 0,
+                batches: [{
+                    id: 'BATCH-' + Date.now(),
+                    qty: qty,
+                    costPerUnit: parseFloat(document.getElementById('ingredientCost').value) || 0,
+                    dateAdded: new Date().toISOString(),
+                    status: 'active'
+                }],
+                totalStock: qty
+            };
+
+            data.ingredients.push(ingredient);
+
+            logActivity(
+                'ingredient_added',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Added ${ingredient.name} - ${qty} ${ingredient.unit}`
+            );
+
+            saveData();
+            displayIngredients();
+            populateRecipeSelects();
+            populateProductionSelect();
+            event.target.reset();
+            showAlert('Raw material added!');
+        }
+
+        function displayIngredients() {
+            const data = getClientData();
+            const container = document.getElementById('ingredientsList');
+
+            if (data.ingredients.length === 0) {
+                container.innerHTML = '<div class="empty-state">No raw materials yet</div>';
+                return;
+            }
+
+            container.innerHTML = data.ingredients.map(ing => `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h3>${ing.name}</h3>
+                            <p class="small-text">Unit: ${ing.unit} | Cost/Unit: ₦${ing.costPerUnit.toFixed(2)} | Shelf Life: ${ing.shelfLifeDays} days</p>
+                        </div>
+                        <button class="btn btn-danger btn-small" onclick="deleteIngredient(${ing.id})">Delete</button>
+                    </div>
+                    
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                        <p style="font-weight: 600; margin-bottom: 0.5rem;">Total Stock: ${ing.totalStock} ${ing.unit}</p>
+                        <p class="small-text" style="margin-bottom: 0.5rem;">Total Value: ₦${(ing.totalStock * ing.costPerUnit).toFixed(2)}</p>
+                        
+                        <p style="font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.5rem;">Batches:</p>
+                        ${ing.batches.map(batch => {
+                            const daysOld = Math.floor((new Date() - new Date(batch.dateAdded)) / (1000 * 60 * 60 * 24));
+                            const daysRemaining = ing.shelfLifeDays - daysOld;
+                            const isOld = daysRemaining <= 0;
+                            const badge = isOld ? '<span class="badge badge-danger">EXPIRED</span>' : daysRemaining <= 5 ? '<span class="badge badge-warning">EXPIRING SOON</span>' : '';
+                            
+                            return `
+                                <div class="batch-item">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>${batch.id} | ${batch.qty} ${ing.unit} | ₦${batch.costPerUnit} each | Age: ${daysOld} days ${badge}</span>
+                                        ${batch.status === 'active' ? `<button class="btn btn-danger btn-small" onclick="writeoffBatch(${ing.id}, '${batch.id}')">Write-off</button>` : '<span style="color: #999;">Written off</span>'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteIngredient(id) {
+            const data = getClientData();
+            const ingredient = data.ingredients.find(i => i.id === id);
+            
+            if (confirm('Delete this material?')) {
+                data.ingredients = data.ingredients.filter(i => i.id !== id);
+                
+                logActivity(
+                    'ingredient_deleted',
+                    AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                    `Deleted ${ingredient.name}`
+                );
+                
+                saveData();
+                displayIngredients();
+                populateRecipeSelects();
+                showAlert('Material deleted');
+            }
+        }
+
+        function writeoffBatch(ingredientId, batchId) {
+            if (!confirm('Write off this batch?')) return;
+
+            const data = getClientData();
+            const ingredient = data.ingredients.find(i => i.id === ingredientId);
+            const batch = ingredient.batches.find(b => b.id === batchId);
+
+            batch.status = 'written_off';
+            ingredient.totalStock -= batch.qty;
+
+            logActivity(
+                'batch_writeoff',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Wrote off batch ${batchId} of ${ingredient.name} (${batch.qty} ${ingredient.unit})`
+            );
+
+            saveData();
+            displayIngredients();
+            showAlert('Batch written off');
+        }
+
+        // ============================================
+        // PRODUCTS WITH COST & PROFIT CALCULATION
+        // ============================================
+
+        function addRecipeItem() {
+            const ingSelect = document.getElementById('finishedIngredient');
+            const qtyInput = document.getElementById('finishedQty');
+            const ingredientId = ingSelect.value;
+            const qty = parseFloat(qtyInput.value);
+
+            if (!ingredientId || !qty) {
+                showAlert('Select ingredient and quantity', 'error');
+                return;
+            }
+
+            const data = getClientData();
+            const ingredient = data.ingredients.find(i => i.id == ingredientId);
+
+            if (!ingredient) {
+                showAlert('Ingredient not found', 'error');
+                return;
+            }
+
+            currentRecipe.finished.push({
+                itemId: parseInt(ingredientId),
+                itemName: ingredient.name,
+                qty,
+                costPerUnit: ingredient.costPerUnit
+            });
+
+            displayRecipeItems();
+            qtyInput.value = '';
+        }
+
+        function displayRecipeItems() {
+            const container = document.getElementById('finishedRecipe');
+            let totalCost = 0;
+
+            const html = currentRecipe.finished.map((item, idx) => {
+                const itemCost = item.qty * item.costPerUnit;
+                totalCost += itemCost;
+                return `
+                    <div class="batch-item">
+                        <span>${item.itemName} - ${item.qty} (₦${item.costPerUnit}/unit = ₦${itemCost.toFixed(2)}) ${totalCost ? '' : ''}</span>
+                        <button type="button" class="btn btn-danger btn-small" onclick="removeRecipeItem(${idx})">Remove</button>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html + (totalCost > 0 ? `<p style="margin-top: 1rem; font-weight: 600;">Total Recipe Cost: ₦${totalCost.toFixed(2)}</p>` : '');
+        }
+
+        function removeRecipeItem(idx) {
+            currentRecipe.finished.splice(idx, 1);
+            displayRecipeItems();
+        }
+
+        function addProduct(event) {
+            event.preventDefault();
+            const data = getClientData();
+            const price = parseFloat(document.getElementById('finishedPrice').value) || 0;
+
+            // Calculate recipe cost
+            let recipeCost = 0;
+            currentRecipe.finished.forEach(item => {
+                recipeCost += item.qty * item.costPerUnit;
+            });
+
+            const product = {
+                id: Date.now(),
+                type: 'finished',
+                name: document.getElementById('finishedName').value,
+                sellingPrice: price,
+                stock: 0,
+                recipe: currentRecipe.finished || [],
+                costPerUnit: recipeCost,
+                profitPerUnit: price - recipeCost,
+                profitMargin: recipeCost > 0 ? ((price - recipeCost) / price * 100).toFixed(1) : 0
+            };
+
+            data.products.push(product);
+
+            logActivity(
+                'product_created',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Created product: ${product.name} - ₦${price.toFixed(2)}`
+            );
+
+            saveData();
+            displayProducts();
+            populateRecipeSelects();
+            populateProductionSelect();
+            populateSalesSelect();
+            currentRecipe.finished = [];
+            event.target.reset();
+            displayRecipeItems();
+            showAlert('Product created!');
+        }
+
+        function displayProducts() {
+            const data = getClientData();
+
+            const tbody = document.querySelector('#productsTable tbody');
+            const empty = document.getElementById('productsEmpty');
+            const products = data.products.filter(p => p.type === 'finished');
+
+            if (products.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = products.map(p => `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>₦${p.sellingPrice.toFixed(2)}</td>
+                    <td>₦${p.costPerUnit.toFixed(2)}</td>
+                    <td>₦${p.profitPerUnit.toFixed(2)}</td>
+                    <td>${p.profitMargin}%</td>
+                    <td>${p.recipe.length} ingredients</td>
+                    <td>
+                        <button class="btn btn-danger btn-small" onclick="deleteProduct(${p.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteProduct(id) {
+            const data = getClientData();
+            data.products = data.products.filter(p => p.id !== id);
+            saveData();
+            displayProducts();
+            populateRecipeSelects();
+            populateProductionSelect();
+            populateSalesSelect();
+            showAlert('Product deleted');
+        }
+
+        // ============================================
+        // PRODUCTION WITH LABOR & FIFO
+        // ============================================
+
+        function addProduction(event) {
+            event.preventDefault();
+            const data = getClientData();
+            const productId = parseInt(document.getElementById('productToProduce').value);
+            const product = data.products.find(p => p.id === productId);
+            const qty = parseFloat(document.getElementById('productionQty').value);
+            const laborHours = parseFloat(document.getElementById('laborHours').value) || 0;
+            const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
+            const laborCost = laborHours * laborRate;
+
+            if (!product) {
+                showAlert('Select a product', 'error');
+                return;
+            }
+
+            // FIFO: Deduct from oldest batches first
+            let materialsCost = 0;
+            const ingredientsUsed = [];
+
+            for (let recipeItem of product.recipe) {
+                const ingredient = data.ingredients.find(i => i.id == recipeItem.itemId);
+                const needed = recipeItem.qty * qty;
+                let remainingNeeded = needed;
+
+                if (!ingredient || ingredient.totalStock < needed) {
+                    showAlert(`Not enough ${ingredient.name}. Need ${needed}, have ${ingredient.totalStock}`, 'error');
+                    return;
+                }
+
+                // FIFO: Take from oldest active batches first
+                const activeBatches = ingredient.batches.filter(b => b.status === 'active').sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+
+                for (let batch of activeBatches) {
+                    if (remainingNeeded <= 0) break;
+
+                    const batchQtyUsed = Math.min(batch.qty, remainingNeeded);
+                    const batchCost = batchQtyUsed * batch.costPerUnit;
+                    materialsCost += batchCost;
+                    batch.qty -= batchQtyUsed;
+                    remainingNeeded -= batchQtyUsed;
+
+                    ingredientsUsed.push({
+                        name: ingredient.name,
+                        qty: batchQtyUsed,
+                        cost: batchCost,
+                        batchId: batch.id
+                    });
+                }
+
+                ingredient.totalStock -= needed;
+            }
+
+            product.stock += qty;
+
+            const totalCost = materialsCost + laborCost;
+            const costPerUnit = qty > 0 ? totalCost / qty : 0;
+
+            data.production.push({
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                productId: product.id,
+                productName: product.name,
+                quantity: qty,
+                materialsCost: materialsCost,
+                laborHours: laborHours,
+                laborRate: laborRate,
+                laborCost: laborCost,
+                totalCost: totalCost,
+                costPerUnit: costPerUnit,
+                ingredientsUsed: ingredientsUsed,
+                notes: document.getElementById('productionNotes').value
+            });
+
+            logActivity(
+                'production_logged',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Produced ${qty} units of ${product.name} - Cost: ₦${totalCost.toFixed(2)}`
+            );
+
+            saveData();
+            displayProduction();
+            displayIngredients();
+            displayStockLevels();
+            updateDashboard();
+            event.target.reset();
+            showAlert('Production run recorded!');
+        }
+
+        function displayProduction() {
+            const data = getClientData();
+            const tbody = document.querySelector('#productionTable tbody');
+            const empty = document.getElementById('productionEmpty');
+
+            if (data.production.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = data.production.slice().reverse().map(p => `
+                <tr>
+                    <td>${p.date}</td>
+                    <td>${p.productName}</td>
+                    <td>${p.quantity}</td>
+                    <td>₦${p.materialsCost.toFixed(2)}</td>
+                    <td>₦${p.laborCost.toFixed(2)}</td>
+                    <td>₦${p.totalCost.toFixed(2)}</td>
+                    <td>₦${p.costPerUnit.toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ============================================
+        // SALES WITH CUSTOMER MANAGEMENT
+        // ============================================
+
+        function addSale(event) {
+            event.preventDefault();
+            const data = getClientData();
+            const productId = parseInt(document.getElementById('saleProduct').value);
+            const product = data.products.find(p => p.id === productId);
+            const qty = parseFloat(document.getElementById('saleQty').value);
+
+            if (!product) {
+                showAlert('Select a product', 'error');
+                return;
+            }
+
+            if (product.stock < qty) {
+                showAlert(`Not enough stock. Have ${product.stock}, need ${qty}`, 'error');
+                return;
+            }
+
+            // Get or create customer
+            const existingCustomerId = document.getElementById('existingCustomer').value;
+            const newCustomerName = document.getElementById('newCustomerName').value;
+
+            let customerId, customer;
+
+            if (existingCustomerId) {
+                customerId = existingCustomerId;
+                customer = data.customers.find(c => c.id == customerId);
+            } else if (newCustomerName) {
+                customerId = 'CUST-' + Date.now();
+                customer = {
+                    id: customerId,
+                    name: newCustomerName,
+                    mobile: document.getElementById('customerMobile').value || '',
+                    email: document.getElementById('customerEmail').value || '',
+                    totalPurchases: 0,
+                    totalSpent: 0,
+                    lastPurchaseDate: null,
+                    purchaseHistory: []
+                };
+                data.customers.push(customer);
+            } else {
+                showAlert('Please select or create a customer', 'error');
+                return;
+            }
+
+            product.stock -= qty;
+            const revenue = product.sellingPrice * qty;
+
+            customer.totalPurchases += 1;
+            customer.totalSpent += revenue;
+            customer.lastPurchaseDate = new Date().toISOString();
+
+            const saleRecord = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                productId: product.id,
+                product: product.name,
+                quantity: qty,
+                revenue: revenue,
+                channel: document.getElementById('saleChannel').value,
+                customerId: customerId,
+                customerName: customer.name
+            };
+
+            customer.purchaseHistory.push({
+                saleId: saleRecord.id,
+                date: new Date().toLocaleString(),
+                product: product.name,
+                qty: qty,
+                amount: revenue
+            });
+
+            data.sales.push(saleRecord);
+
+            logActivity(
+                'sale_logged',
+                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
+                `Sold ${qty} units of ${product.name} to ${customer.name} - ₦${revenue.toFixed(2)}`
+            );
+
+            saveData();
+            displaySales();
+            displayCustomers();
+            displayStockLevels();
+            updateDashboard();
+            event.target.reset();
+            populateCustomerSelects();
+            showAlert('Sale recorded!');
+        }
+
+        function displaySales() {
+            const data = getClientData();
+            const tbody = document.querySelector('#salesTable tbody');
+            const empty = document.getElementById('salesEmpty');
+
+            if (data.sales.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = data.sales.slice().reverse().map(s => `
+                <tr>
+                    <td>${s.date}</td>
+                    <td>${s.customerName}</td>
+                    <td>${s.product}</td>
+                    <td>${s.quantity}</td>
+                    <td>₦${s.revenue.toFixed(2)}</td>
+                    <td>${s.channel}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ============================================
+        // CUSTOMER MANAGEMENT
+        // ============================================
+
+        function displayCustomers() {
+            const data = getClientData();
+            const tbody = document.querySelector('#customersTable tbody');
+            const empty = document.getElementById('customersEmpty');
+
+            if (data.customers.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = data.customers.map(c => `
+                <tr>
+                    <td>${c.name}</td>
+                    <td>${c.mobile}</td>
+                    <td>${c.email}</td>
+                    <td>${c.totalPurchases}</td>
+                    <td>₦${c.totalSpent.toFixed(2)}</td>
+                    <td>${c.lastPurchaseDate ? new Date(c.lastPurchaseDate).toLocaleDateString() : '-'}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-small" onclick="viewCustomerHistory('${c.id}')">History</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewCustomerHistory(customerId) {
+            const data = getClientData();
+            const customer = data.customers.find(c => c.id === customerId);
+            if (!customer) return;
+
+            let history = customer.purchaseHistory.map(p => `${p.date}: ${p.product} - ${p.qty} units (₦${p.amount.toFixed(2)})`).join('\n');
+            alert(`Purchase History for ${customer.name}:\n\n${history || 'No purchases'}`);
+        }
+
+        function populateCustomerSelects() {
+            const data = getClientData();
+            const select = document.getElementById('existingCustomer');
+            select.innerHTML = '<option value="">-- Create New Customer --</option>' +
+                data.customers.map(c => `<option value="${c.id}">${c.name} (${c.mobile})</option>`).join('');
+        }
+
+        // ============================================
+        // STOCK LEVELS & DASHBOARD
+        // ============================================
+
+        function displayStockLevels() {
+            const data = getClientData();
+
+            // Raw materials
+            const stockTbody = document.querySelector('#stockTable tbody');
+            stockTbody.innerHTML = data.ingredients.map(ing => `
+                <tr>
+                    <td>${ing.name}</td>
+                    <td>${ing.totalStock}</td>
+                    <td>${ing.unit}</td>
+                    <td>₦${ing.costPerUnit.toFixed(2)}</td>
+                    <td>₦${(ing.totalStock * ing.costPerUnit).toFixed(2)}</td>
+                    <td>${ing.batches.filter(b => b.status === 'active').length} active</td>
+                </tr>
+            `).join('');
+
+            // Finished products
+            const finishedStockTbody = document.querySelector('#finishedStockTable tbody');
+            const finishedProducts = data.products.filter(p => p.type === 'finished');
+            finishedStockTbody.innerHTML = finishedProducts.map(p => `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${p.stock}</td>
+                    <td>₦${p.costPerUnit.toFixed(2)}</td>
+                    <td>₦${p.sellingPrice.toFixed(2)}</td>
+                    <td>₦${p.profitPerUnit.toFixed(2)} (${p.profitMargin}%)</td>
+                    <td>₦${(p.stock * p.profitPerUnit).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateDashboard() {
+            const data = getClientData();
+
+            // Summary stats
+            document.getElementById('totalRawMaterials').textContent = data.ingredients.length;
+            document.getElementById('totalRawQty').textContent = data.ingredients.reduce((sum, i) => sum + i.totalStock, 0).toFixed(0);
+            document.getElementById('totalProducts').textContent = data.products.length;
+            document.getElementById('totalFinishedQty').textContent = data.products.filter(p => p.type === 'finished').reduce((sum, p) => sum + p.stock, 0).toFixed(0);
+
+            // Top 5 customers
+            const topCustomers = [...data.customers].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5);
+            const topCustomersTable = document.querySelector('#topCustomersTable tbody');
+            const topCustomersEmpty = document.getElementById('topCustomersEmpty');
+
+            if (topCustomers.length === 0) {
+                topCustomersTable.innerHTML = '';
+                topCustomersEmpty.style.display = 'block';
+            } else {
+                topCustomersEmpty.style.display = 'none';
+                topCustomersTable.innerHTML = topCustomers.map(c => `
+                    <tr>
+                        <td>${c.name}</td>
+                        <td>${c.mobile}</td>
+                        <td>₦${c.totalSpent.toFixed(2)}</td>
+                        <td>${c.totalPurchases}</td>
+                        <td>${c.lastPurchaseDate ? new Date(c.lastPurchaseDate).toLocaleDateString() : '-'}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // Recent activity (last 10)
+            const recentActivities = [...data.activities].reverse().slice(0, 10);
+            const recentActivityTable = document.querySelector('#recentActivityTable tbody');
+            const recentActivityEmpty = document.getElementById('recentActivityEmpty');
+
+            if (recentActivities.length === 0) {
+                recentActivityTable.innerHTML = '';
+                recentActivityEmpty.style.display = 'block';
+            } else {
+                recentActivityEmpty.style.display = 'none';
+                recentActivityTable.innerHTML = recentActivities.map(a => `
+                    <tr>
+                        <td>${new Date(a.timestamp).toLocaleString()}</td>
+                        <td>${formatActivityType(a.type)}</td>
+                        <td>${a.details}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function formatActivityType(type) {
+            const types = {
+                'ingredient_added': '➕ Ingredient Added',
+                'ingredient_deleted': '🗑️ Ingredient Deleted',
+                'product_created': '📦 Product Created',
+                'product_deleted': '🗑️ Product Deleted',
+                'production_logged': '🏭 Production Run',
+                'sale_logged': '💰 Sale Logged',
+                'batch_writeoff': '❌ Batch Write-off'
+            };
+            return types[type] || type;
+        }
+
+        function displayActivityLog(filterType = '') {
+            const data = getClientData();
+            const activities = data.activities || [];
+            const tbody = document.querySelector('#activityTable tbody');
+            const empty = document.getElementById('activityEmpty');
+
+            let filtered = activities;
+            if (filterType) {
+                filtered = activities.filter(a => a.type === filterType);
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = filtered.slice().reverse().map(activity => `
+                <tr>
+                    <td><code>${activity.id}</code></td>
+                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
+                    <td>${activity.staffName}</td>
+                    <td>${formatActivityType(activity.type)}</td>
+                    <td>${activity.details}</td>
+                </tr>
+            `).join('');
+        }
+
+        function applyActivityFilter() {
+            const filterType = document.getElementById('activityFilter').value;
+            displayActivityLog(filterType);
+        }
+
+        // ============================================
+        // WRITE-OFF RECOMMENDATIONS (ADMIN)
+        // ============================================
+
+        function displayWriteoffRecommendations() {
+            const clientCodes = Object.keys(DB.clientData);
+            const tbody = document.querySelector('#writeoffTable tbody');
+            const empty = document.getElementById('writeoffEmpty');
+
+            let recommendations = [];
+
+            for (let clientCode of clientCodes) {
+                const data = DB.clientData[clientCode];
+                for (let ingredient of data.ingredients) {
+                    for (let batch of ingredient.batches) {
+                        if (batch.status === 'written_off') continue;
+
+                        const daysOld = Math.floor((new Date() - new Date(batch.dateAdded)) / (1000 * 60 * 60 * 24));
+                        const daysRemaining = ingredient.shelfLifeDays - daysOld;
+
+                        if (daysRemaining <= 0) {
+                            recommendations.push({
+                                clientCode,
+                                materialName: ingredient.name,
+                                batchId: batch.id,
+                                daysOld,
+                                shelfLife: ingredient.shelfLifeDays,
+                                qty: batch.qty,
+                                unit: ingredient.unit,
+                                ingredientId: ingredient.id
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (recommendations.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = recommendations.map(r => `
+                <tr>
+                    <td>${r.materialName}</td>
+                    <td>${r.batchId}</td>
+                    <td>${r.daysOld}</td>
+                    <td>${r.shelfLife}</td>
+                    <td>${r.qty} ${r.unit}</td>
+                    <td>
+                        <button class="btn btn-danger btn-small" onclick="adminWriteoffBatch('${r.clientCode}', ${r.ingredientId}, '${r.batchId}')">Write-off</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function adminWriteoffBatch(clientCode, ingredientId, batchId) {
+            const data = DB.clientData[clientCode];
+            const ingredient = data.ingredients.find(i => i.id === ingredientId);
+            const batch = ingredient.batches.find(b => b.id === batchId);
+
+            if (!confirm(`Write off ${batch.qty} ${ingredient.unit} of ${ingredient.name}?`)) return;
+
+            batch.status = 'written_off';
+            ingredient.totalStock -= batch.qty;
+
+            saveData();
+            displayWriteoffRecommendations();
+            showAlert('Batch written off');
+        }
+
+        // ============================================
+        // ADMIN PANEL
         // ============================================
 
         function createClient(event) {
@@ -1083,6 +1852,7 @@
                 products: [],
                 production: [],
                 sales: [],
+                customers: [],
                 activities: []
             };
 
@@ -1129,7 +1899,7 @@
 
         function sendWelcomeEmail(clientName, clientCode, clientPin, clientEmail) {
             const appUrl = window.location.href.split('?')[0];
-            
+
             emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
                 to_email: clientEmail,
                 client_name: clientName,
@@ -1145,490 +1915,6 @@
                     showAlert('⚠️ Business created but email failed. Send manually.', 'error');
                 }
             );
-        }
-
-        // ============================================
-        // DATA HELPERS
-        // ============================================
-
-        function loadClientData() {
-            if (!DB.clientData[AUTH.clientCode]) {
-                DB.clientData[AUTH.clientCode] = {
-                    ingredients: [],
-                    products: [],
-                    production: [],
-                    sales: []
-                };
-            }
-            updateAllDisplays();
-        }
-
-        function getClientData() {
-            return DB.clientData[AUTH.clientCode] || { ingredients: [], products: [], production: [], sales: [] };
-        }
-
-        // ============================================
-        // RAW MATERIALS (INGREDIENTS)
-        // ============================================
-
-        function addIngredient(event) {
-            event.preventDefault();
-            const data = getClientData();
-            const ingredient = {
-                id: Date.now(),
-                name: document.getElementById('ingredientName').value,
-                unit: document.getElementById('ingredientUnit').value,
-                cost: parseFloat(document.getElementById('ingredientCost').value) || 0,
-                stock: parseFloat(document.getElementById('ingredientStock').value) || 0
-            };
-
-            data.ingredients.push(ingredient);
-            
-            // Log activity
-            logActivity(
-                'ingredient_added',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Added ${ingredient.name}`,
-                {
-                    name: {old: '-', new: ingredient.name},
-                    unit: {old: '-', new: ingredient.unit},
-                    cost: {old: '0', new: ingredient.cost},
-                    stock: {old: '0', new: ingredient.stock}
-                }
-            );
-
-            saveData();
-            displayIngredients();
-            populateRecipeSelects();
-            event.target.reset();
-            showAlert('Raw material added!');
-        }
-
-        function displayIngredients() {
-            const data = getClientData();
-            const tbody = document.querySelector('#ingredientsTable tbody');
-            const empty = document.getElementById('ingredientsEmpty');
-
-            if (data.ingredients.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tbody.innerHTML = data.ingredients.map(ing => `
-                <tr>
-                    <td>${ing.name}</td>
-                    <td>${ing.unit}</td>
-                    <td>₦${ing.cost.toFixed(2)}</td>
-                    <td>${ing.stock}</td>
-                    <td>
-                        <button class="btn btn-danger btn-small" onclick="deleteIngredient(${ing.id})">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function deleteIngredient(id) {
-            const data = getClientData();
-            const ingredient = data.ingredients.find(i => i.id === id);
-            
-            if (confirm('Delete this material?')) {
-                data.ingredients = data.ingredients.filter(i => i.id !== id);
-                
-                logActivity(
-                    'ingredient_deleted',
-                    AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                    `Deleted ${ingredient.name}`
-                );
-                
-                saveData();
-                displayIngredients();
-                populateRecipeSelects();
-                showAlert('Material deleted');
-            }
-        }
-
-        // ============================================
-        // PRODUCTS
-        // ============================================
-
-        function switchProductType(type) {
-            document.querySelectorAll('.product-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.product-type-tab').forEach(b => b.classList.remove('active'));
-            
-            if (type === 'semi_finished') {
-                document.getElementById('semiFinishedSection').classList.add('active');
-            } else {
-                document.getElementById('finishedSection').classList.add('active');
-            }
-            
-            event.target.classList.add('active');
-        }
-
-        function addRecipeItem(type) {
-            const ingSelect = document.getElementById(type + 'Ingredient');
-            const qtyInput = document.getElementById(type + 'Qty');
-            const ingredientId = ingSelect.value;
-            const qty = parseFloat(qtyInput.value);
-
-            if (!ingredientId || !qty) {
-                showAlert('Select ingredient and quantity', 'error');
-                return;
-            }
-
-            const data = getClientData();
-            let item = data.ingredients.find(i => i.id == ingredientId);
-            if (!item) {
-                item = data.products.find(p => p.id == ingredientId);
-            }
-
-            currentRecipe[type].push({ itemId: parseInt(ingredientId), itemName: item.name, qty });
-            displayRecipeItems(type);
-            qtyInput.value = '';
-        }
-
-        function displayRecipeItems(type) {
-            const container = document.getElementById(type + 'Recipe');
-            container.innerHTML = currentRecipe[type].map((item, idx) => `
-                <div class="recipe-item">
-                    <span>${item.itemName} - ${item.qty}</span>
-                    <button type="button" class="btn btn-danger btn-small" onclick="removeRecipeItem('${type}', ${idx})">Remove</button>
-                </div>
-            `).join('');
-        }
-
-        function removeRecipeItem(type, idx) {
-            currentRecipe[type].splice(idx, 1);
-            displayRecipeItems(type);
-        }
-
-        function addProduct(event, type) {
-            event.preventDefault();
-            const data = getClientData();
-            
-            let product = {
-                id: Date.now(),
-                type: type,
-                recipe: currentRecipe[type] || []
-            };
-
-            if (type === 'semi_finished') {
-                product.name = document.getElementById('semiName').value;
-                product.stock = 0;
-            } else {
-                product.name = document.getElementById('finishedName').value;
-                product.price = parseFloat(document.getElementById('finishedPrice').value) || 0;
-                product.stock = 0;
-            }
-
-            data.products.push(product);
-            saveData();
-            displayProducts();
-            populateRecipeSelects();
-            populateProductionSelect();
-            populateSalesSelect();
-            currentRecipe[type] = [];
-            event.target.reset();
-            displayRecipeItems(type);
-            showAlert('Product added!');
-        }
-
-        function displayProducts() {
-            const data = getClientData();
-            
-            // Semi-finished
-            const semiTbody = document.querySelector('#semiTable tbody');
-            const semiEmpty = document.getElementById('semiEmpty');
-            const semiProducts = data.products.filter(p => p.type === 'semi_finished');
-
-            if (semiProducts.length === 0) {
-                semiTbody.innerHTML = '';
-                semiEmpty.style.display = 'block';
-            } else {
-                semiEmpty.style.display = 'none';
-                semiTbody.innerHTML = semiProducts.map(p => `
-                    <tr>
-                        <td>${p.name}</td>
-                        <td>${p.recipe.length} ingredients</td>
-                        <td>
-                            <button class="btn btn-danger btn-small" onclick="deleteProduct(${p.id})">Delete</button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-
-            // Finished
-            const finishedTbody = document.querySelector('#finishedTable tbody');
-            const finishedEmpty = document.getElementById('finishedEmpty');
-            const finishedProducts = data.products.filter(p => p.type === 'finished');
-
-            if (finishedProducts.length === 0) {
-                finishedTbody.innerHTML = '';
-                finishedEmpty.style.display = 'block';
-            } else {
-                finishedEmpty.style.display = 'none';
-                finishedTbody.innerHTML = finishedProducts.map(p => `
-                    <tr>
-                        <td>${p.name}</td>
-                        <td>₦${p.price.toFixed(2)}</td>
-                        <td>${p.recipe.length} ingredients</td>
-                        <td>
-                            <button class="btn btn-danger btn-small" onclick="deleteProduct(${p.id})">Delete</button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        function deleteProduct(id) {
-            const data = getClientData();
-            data.products = data.products.filter(p => p.id !== id);
-            saveData();
-            displayProducts();
-            populateRecipeSelects();
-            populateProductionSelect();
-            populateSalesSelect();
-            showAlert('Product deleted');
-        }
-
-        // ============================================
-        // PRODUCTION
-        // ============================================
-
-        function addProduction(event) {
-            event.preventDefault();
-            const data = getClientData();
-            const productId = parseInt(document.getElementById('productToProduce').value);
-            const product = data.products.find(p => p.id === productId);
-            const qty = parseFloat(document.getElementById('productionQty').value);
-
-            if (!product) {
-                showAlert('Select a product', 'error');
-                return;
-            }
-
-            // Check if ingredients exist
-            let totalCost = 0;
-            let ingredientChanges = {};
-            
-            for (let recipeItem of product.recipe) {
-                const ingredient = data.ingredients.find(i => i.id == recipeItem.itemId);
-                const semiProduct = data.products.find(p => p.id == recipeItem.itemId);
-                
-                if (ingredient) {
-                    const needed = recipeItem.qty * qty;
-                    if (ingredient.stock < needed) {
-                        showAlert(`Not enough ${ingredient.name}. Need ${needed}, have ${ingredient.stock}`, 'error');
-                        return;
-                    }
-                    totalCost += ingredient.cost * needed;
-                } else if (semiProduct && semiProduct.type === 'semi_finished') {
-                    const needed = recipeItem.qty * qty;
-                    if (semiProduct.stock < needed) {
-                        showAlert(`Not enough ${semiProduct.name}. Need ${needed}, have ${semiProduct.stock}`, 'error');
-                        return;
-                    }
-                }
-            }
-
-            // Deduct ingredients and track changes
-            for (let recipeItem of product.recipe) {
-                const ingredient = data.ingredients.find(i => i.id == recipeItem.itemId);
-                const semiProduct = data.products.find(p => p.id == recipeItem.itemId);
-                
-                const needed = recipeItem.qty * qty;
-                if (ingredient) {
-                    const oldStock = ingredient.stock;
-                    ingredient.stock -= needed;
-                    ingredientChanges[ingredient.name] = {old: oldStock, new: ingredient.stock};
-                } else if (semiProduct) {
-                    const oldStock = semiProduct.stock;
-                    semiProduct.stock -= needed;
-                    ingredientChanges[semiProduct.name] = {old: oldStock, new: semiProduct.stock};
-                }
-            }
-
-            // Increase product stock
-            const oldProductStock = product.stock;
-            product.stock += qty;
-            ingredientChanges[`${product.name} (produced)`] = {old: oldProductStock, new: product.stock};
-
-            // Log production
-            data.production.push({
-                id: Date.now(),
-                date: new Date().toLocaleString(),
-                productId: product.id,
-                productName: product.name,
-                quantity: qty,
-                cost: totalCost,
-                notes: document.getElementById('productionNotes').value
-            });
-
-            // Log activity
-            logActivity(
-                'production_logged',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Produced ${qty} units of ${product.name}`,
-                ingredientChanges
-            );
-
-            saveData();
-            displayProduction();
-            displayStockLevels();
-            updateDashboard();
-            event.target.reset();
-            showAlert('Production run recorded!');
-        }
-
-        function displayProduction() {
-            const data = getClientData();
-            const tbody = document.querySelector('#productionTable tbody');
-            const empty = document.getElementById('productionEmpty');
-
-            if (data.production.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tbody.innerHTML = data.production.slice().reverse().map(p => `
-                <tr>
-                    <td>${p.date}</td>
-                    <td>${p.productName}</td>
-                    <td>${p.quantity}</td>
-                    <td>₦${p.cost.toFixed(2)}</td>
-                    <td>${p.notes}</td>
-                </tr>
-            `).join('');
-        }
-
-        // ============================================
-        // SALES
-        // ============================================
-
-        function addSale(event) {
-            event.preventDefault();
-            const data = getClientData();
-            const productId = parseInt(document.getElementById('saleProduct').value);
-            const product = data.products.find(p => p.id === productId);
-            const qty = parseFloat(document.getElementById('saleQty').value);
-
-            if (!product) {
-                showAlert('Select a product', 'error');
-                return;
-            }
-
-            if (product.stock < qty) {
-                showAlert(`Not enough stock. Have ${product.stock}, need ${qty}`, 'error');
-                return;
-            }
-
-            const oldStock = product.stock;
-            product.stock -= qty;
-
-            data.sales.push({
-                id: Date.now(),
-                date: new Date().toLocaleString(),
-                productId: product.id,
-                product: product.name,
-                quantity: qty,
-                revenue: product.price * qty,
-                channel: document.getElementById('saleChannel').value
-            });
-
-            // Log activity
-            logActivity(
-                'sale_logged',
-                AUTH.userType === 'admin' ? 'Admin' : 'Staff',
-                `Sold ${qty} units of ${product.name} via ${document.getElementById('saleChannel').value}`,
-                {
-                    [product.name + ' stock']: {old: oldStock, new: product.stock},
-                    revenue: {old: '0', new: (product.price * qty).toFixed(2)}
-                }
-            );
-
-            saveData();
-            displaySales();
-            displayStockLevels();
-            updateDashboard();
-            event.target.reset();
-            showAlert('Sale recorded!');
-        }
-
-        function displaySales() {
-            const data = getClientData();
-            const tbody = document.querySelector('#salesTable tbody');
-            const empty = document.getElementById('salesEmpty');
-
-            if (data.sales.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tbody.innerHTML = data.sales.slice().reverse().map(s => `
-                <tr>
-                    <td>${s.date}</td>
-                    <td>${s.product}</td>
-                    <td>${s.quantity}</td>
-                    <td>₦${s.revenue.toFixed(2)}</td>
-                    <td>${s.channel}</td>
-                </tr>
-            `).join('');
-        }
-
-        // ============================================
-        // STOCK LEVELS
-        // ============================================
-
-        function displayStockLevels() {
-            const data = getClientData();
-
-            // Raw materials
-            const stockTbody = document.querySelector('#stockTable tbody');
-            stockTbody.innerHTML = data.ingredients.map(ing => `
-                <tr>
-                    <td>${ing.name}</td>
-                    <td>${ing.stock}</td>
-                    <td>${ing.unit}</td>
-                </tr>
-            `).join('');
-
-            // Semi-finished
-            const semiStockTbody = document.querySelector('#semiStockTable tbody');
-            const semiProducts = data.products.filter(p => p.type === 'semi_finished');
-            semiStockTbody.innerHTML = semiProducts.map(p => `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${p.stock}</td>
-                </tr>
-            `).join('');
-
-            // Finished
-            const finishedStockTbody = document.querySelector('#finishedStockTable tbody');
-            const finishedProducts = data.products.filter(p => p.type === 'finished');
-            finishedStockTbody.innerHTML = finishedProducts.map(p => `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${p.stock}</td>
-                    <td>₦${p.price.toFixed(2)}</td>
-                </tr>
-            `).join('');
-        }
-
-        // ============================================
-        // DASHBOARD
-        // ============================================
-
-        function updateDashboard() {
-            const data = getClientData();
-            document.getElementById('totalIngredients').textContent = data.ingredients.length;
-            document.getElementById('totalProducts').textContent = data.products.length;
-            document.getElementById('totalProduction').textContent = data.production.length;
-            document.getElementById('totalSales').textContent = data.sales.length;
         }
 
         // ============================================
@@ -1653,26 +1939,24 @@
 
         function populateRecipeSelects() {
             const data = getClientData();
-            const options = '<option value="">Select ingredient/product...</option>' +
-                data.ingredients.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('') +
-                data.products.map(p => `<option value="${p.id}">${p.name} (${p.type})</option>`).join('');
-
-            document.getElementById('semiIngredient').innerHTML = options;
+            const options = '<option value="">Select raw material...</option>' +
+                data.ingredients.map(i => `<option value="${i.id}">${i.name} - ${i.totalStock} ${i.unit} available</option>`).join('');
             document.getElementById('finishedIngredient').innerHTML = options;
         }
 
         function populateProductionSelect() {
             const data = getClientData();
+            const finished = data.products.filter(p => p.type === 'finished');
             const options = '<option value="">Select product...</option>' +
-                data.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                finished.map(p => `<option value="${p.id}">${p.name} (${p.stock} available)</option>`).join('');
             document.getElementById('productToProduce').innerHTML = options;
         }
 
         function populateSalesSelect() {
             const data = getClientData();
             const finished = data.products.filter(p => p.type === 'finished');
-            const options = '<option value="">Select product...</option>' +
-                finished.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            const options = '<option value="">Select finished product...</option>' +
+                finished.map(p => `<option value="${p.id}">${p.name} - ₦${p.sellingPrice.toFixed(2)} (${p.stock} available)</option>`).join('');
             document.getElementById('saleProduct').innerHTML = options;
         }
 
@@ -1681,12 +1965,14 @@
             displayProducts();
             displayProduction();
             displaySales();
+            displayCustomers();
             displayStockLevels();
             displayActivityLog();
             updateDashboard();
             populateRecipeSelects();
             populateProductionSelect();
             populateSalesSelect();
+            populateCustomerSelects();
         }
 
         // ============================================
@@ -1725,11 +2011,12 @@
                     products: data.products,
                     production: data.production,
                     sales: data.sales,
+                    customers: data.customers,
                     activities: data.activities || []
                 })
             })
             .then(r => r.json())
-            .then(() => showAlert('✓ Backup successful! All data including activity log synced.', 'success'))
+            .then(() => showAlert('✓ Backup successful!', 'success'))
             .catch(err => showAlert('✗ Backup failed', 'error'));
         }
 
