@@ -1310,7 +1310,7 @@
             let product = {
                 id: Date.now(),
                 type: type,
-                recipe: currentRecipe[type]
+                recipe: currentRecipe[type] || []
             };
 
             if (type === 'semi_finished') {
